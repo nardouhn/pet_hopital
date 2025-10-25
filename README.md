@@ -23,31 +23,31 @@ Verify npm version:
   npm -v # Should print "10.9.4".
 - B2: Tạo và vào thư mục project trống
 - B3: Tạo project bằng công cụ Vite: chạy câu lệnh sau trong Terminal của project: npx create-vite
+
+>  Project name:
+>  .
+
+>  Select a framework:
+>  React
 |
-o  Project name:
-|  .
+>  Select a variant:
+>  JavaScript
 |
-o  Select a framework:
-|  React
+>  Use rolldown-vite (Experimental)?:
+>  No
 |
-o  Select a variant:
-|  JavaScript
+>  Install with npm and start now?
+>  Yes
 |
-o  Use rolldown-vite (Experimental)?:
-|  No
+>  Scaffolding project in D:\test...
 |
-o  Install with npm and start now?
-|  Yes
-|
-o  Scaffolding project in D:\test...
-|
-o  Installing dependencies with npm...
+>  Installing dependencies with npm...
 added 153 packages, and audited 154 packages in 13s
 32 packages are looking for funding
   run `npm fund` for details
 found 0 vulnerabilities
 |
-o  Starting dev server...
+>  Starting dev server...
 > test@0.0.0 dev
 > vite
 
