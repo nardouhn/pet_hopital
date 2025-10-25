@@ -22,40 +22,41 @@ Verify the Node.js version:
 Verify npm version:
   npm -v # Should print "10.9.4".
 - B2: Tạo và vào thư mục project trống
-- B3: Tạo project bằng công cụ Vite: chạy câu lệnh sau trong Terminal của project: npx create-vite
-
->  Project name:
->  .
-
->  Select a framework:
->  React
-
->  Select a variant:
->  JavaScript
-
->  Use rolldown-vite (Experimental)?:
->  No
-
->  Install with npm and start now?
->  Yes
-
->  Scaffolding project in D:\test...
-
->  Installing dependencies with npm...
-added 153 packages, and audited 154 packages in 13s
-32 packages are looking for funding
-  run `npm fund` for details
-found 0 vulnerabilities
-
->  Starting dev server...
-> test@0.0.0 dev
-> vite
-
->  VITE v7.1.12  ready in 973 ms
-
-> ➜  Local:   http://localhost:5173/
-> ➜  Network: use --host to expose
-> ➜  press h + enter to show help
+- B3: Tạo project bằng công cụ Vite: chạy câu lệnh sau trong Terminal của project:
+  + npx create-vite
+    
+    >  Project name:
+    >  .
+    
+    >  Select a framework:
+    >  React
+    
+    >  Select a variant:
+    >  JavaScript
+    
+    >  Use rolldown-vite (Experimental)?:
+    >  No
+    
+    >  Install with npm and start now?
+    >  Yes
+    
+    >  Scaffolding project in D:\test...
+    
+    >  Installing dependencies with npm...
+    added 153 packages, and audited 154 packages in 13s
+    32 packages are looking for funding
+      run `npm fund` for details
+    found 0 vulnerabilities
+    
+    >  Starting dev server...
+    > test@0.0.0 dev
+    > vite
+    
+    >  VITE v7.1.12  ready in 973 ms
+    
+    > ➜  Local:   http://localhost:5173/
+    > ➜  Network: use --host to expose
+    > ➜  press h + enter to show help
 
   + Ctrl + C -> y -> Enter
   + npm install 
