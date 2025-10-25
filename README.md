@@ -29,24 +29,24 @@ Verify npm version:
 
 >  Select a framework:
 >  React
-|
+
 >  Select a variant:
 >  JavaScript
-|
+
 >  Use rolldown-vite (Experimental)?:
 >  No
-|
+
 >  Install with npm and start now?
 >  Yes
-|
+
 >  Scaffolding project in D:\test...
-|
+
 >  Installing dependencies with npm...
 added 153 packages, and audited 154 packages in 13s
 32 packages are looking for funding
   run `npm fund` for details
 found 0 vulnerabilities
-|
+
 >  Starting dev server...
 > test@0.0.0 dev
 > vite
