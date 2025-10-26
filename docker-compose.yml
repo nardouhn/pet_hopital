@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  backend:
+    build: .
+    container_name: petorium_backend
+    ports:
+      - "5001:5000"   # ánh xạ port host 5001 sang port container 5000
+    volumes:
+      - .:/app            # map code local vào container
+    environment:
+      - FLASK_ENV=development
