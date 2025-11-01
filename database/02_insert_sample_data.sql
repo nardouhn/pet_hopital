@@ -91,13 +91,11 @@ INSERT INTO user (first_name, last_name, email, password, user_type, phone, addr
 INSERT INTO user (first_name, last_name, email, password, user_type, phone, address, city, country) VALUES ('Huyền','Hoàng','user059@example.com','123456','doctor','0997807854','Quận 11, Hồ Chí Minh','Huế','Vietnam');
 INSERT INTO user (first_name, last_name, email, password, user_type, phone, address, city, country) VALUES ('Mây','Phạm','user060@example.com','123456','admin','0968633188','Quận 2, Hồ Chí Minh','Đà Nẵng','Vietnam');
 
--- DOCTORS
-INSERT INTO doctor (doctor_name, birth, email, phone) VALUES ('BS. Bùi Tuấn','1970-03-05','doctor1@vetclinic.local','0910695618');
-INSERT INTO doctor (doctor_name, birth, email, phone) VALUES ('BS. Hoàng Hiếu','1990-04-14','doctor2@vetclinic.local','0978496968');
-INSERT INTO doctor (doctor_name, birth, email, phone) VALUES ('BS. Nguyễn Tùng','1986-06-01','doctor3@vetclinic.local','0928536027');
-INSERT INTO doctor (doctor_name, birth, email, phone) VALUES ('BS. Hoàng Tuấn','1982-12-14','doctor4@vetclinic.local','0953503239');
-INSERT INTO doctor (doctor_name, birth, email, phone) VALUES ('BS. Đặng Nam','1980-11-27','doctor5@vetclinic.local','0948039600');
-INSERT INTO doctor (doctor_name, birth, email, phone) VALUES ('BS. Nguyễn Khánh','1971-12-10','doctor6@vetclinic.local','0993446183');
+-- DOCTOR
+INSERT INTO doctor (doctor_name, birth, email, phone) VALUES ('BS. Nguyễn Hiệu','2005-09-10','hieu@vetclinic.local','0912345678');
+INSERT INTO doctor (doctor_name, birth, email, phone) VALUES ('BS. Đỗ Mây','2005-02-26','may@vetclinic.local','0923456789');
+INSERT INTO doctor (doctor_name, birth, email, phone) VALUES ('BS. Nguyễn Như','2005-03-25','nhu@vetclinic.local','0934567890');
+INSERT INTO doctor (doctor_name, birth, email, phone) VALUES ('BS. Phạm Thư','2005-08-23','thu@vetclinic.local','0945678901');
 
 -- PETS
 INSERT INTO pets (name, breed, gender, age, weight, color, user_id) VALUES ('Luna_18','Mèo Ba Tư','female',8,34.0,'Đen',51);
@@ -253,25 +251,25 @@ INSERT INTO pets (name, breed, gender, age, weight, color, user_id) VALUES ('Mun
 
 -- SERVICES
 INSERT INTO Services (name, price) VALUES ('Khám tổng quát', 300000);
-INSERT INTO Services (name, price) VALUES ('Tiêm phòng dại', 300000);
-INSERT INTO Services (name, price) VALUES ('Tắm vệ sinh', 300000);
-INSERT INTO Services (name, price) VALUES ('Cắt tỉa lông', 150000);
-INSERT INTO Services (name, price) VALUES ('Phẫu thuật nhỏ', 100000);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 6', 263393);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 7', 291946);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 8', 394901);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 9', 331612);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 10', 346884);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 11', 83202);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 12', 149325);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 13', 215517);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 14', 303197);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 15', 225037);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 16', 315449);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 17', 53494);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 18', 179364);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 19', 172831);
-INSERT INTO Services (name, price) VALUES ('Dịch vụ 20', 158521);
+INSERT INTO Services (name, price) VALUES ('Tiêm phòng dại', 250000);
+INSERT INTO Services (name, price) VALUES ('Tắm vệ sinh toàn thân', 200000);
+INSERT INTO Services (name, price) VALUES ('Cắt tỉa lông', 180000);
+INSERT INTO Services (name, price) VALUES ('Phẫu thuật nhỏ', 500000);
+INSERT INTO Services (name, price) VALUES ('Siêu âm bụng', 350000);
+INSERT INTO Services (name, price) VALUES ('Chụp X-quang', 400000);
+INSERT INTO Services (name, price) VALUES ('Khám da liễu', 250000);
+INSERT INTO Services (name, price) VALUES ('Điều trị nội trú 1 ngày', 600000);
+INSERT INTO Services (name, price) VALUES ('Lấy cao răng', 220000);
+INSERT INTO Services (name, price) VALUES ('Khám mắt', 270000);
+INSERT INTO Services (name, price) VALUES ('Cắt móng và vệ sinh tai', 150000);
+INSERT INTO Services (name, price) VALUES ('Tiêm phòng 5 bệnh', 450000);
+INSERT INTO Services (name, price) VALUES ('Phẫu thuật triệt sản', 800000);
+INSERT INTO Services (name, price) VALUES ('Khám dinh dưỡng & tư vấn', 200000);
+INSERT INTO Services (name, price) VALUES ('Cấp cứu ngoài giờ', 1000000);
+INSERT INTO Services (name, price) VALUES ('Truyền dịch', 350000);
+INSERT INTO Services (name, price) VALUES ('Khám lại định kỳ', 150000);
+INSERT INTO Services (name, price) VALUES ('Tẩy giun', 180000);
+INSERT INTO Services (name, price) VALUES ('Khám tim mạch', 320000);
 
 -- MEDICATION
 INSERT INTO medication (name, quantity, price) VALUES ('Ivermectin', 19, 20000);
