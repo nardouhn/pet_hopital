@@ -2,7 +2,8 @@ import LoginForm from "@/components/auth/LoginForm";
 
 import NavBar from "@/layouts/NavBar";
 import Footer from "@/layouts/Footer";
-import { Heart } from "lucide-react";
+import { Heart, PawPrint } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function LoginPage() {
   return (
@@ -17,9 +18,21 @@ export default function LoginPage() {
         <h1 className="text-3xl md:text-4xl font-bold mb-8">Đăng nhập</h1>
 
         <LoginForm />
+
+        <div className="mt-6 w-full max-w-xl bg-white rounded-xl shadow-md p-4">
+          <div className="flex items-center justify-center h-full">
+            <Link
+              to="/signup"
+              className="w-1/2 rounded-xl bg-[linear-gradient(90deg,#14B8A6_0%,#0EA5E9_100%)] py-3 text-white font-semibold flex items-center justify-center gap-2 hover:bg-teal-600 transition"
+            >
+              ♡ Đăng ký (Sign up)
+              <PawPrint className="w-5 h-5" />
+            </Link>
+          </div>
+        </div>
       </main>
 
-      <Footer />
+      <Footer variant="compact" />
     </div>
   );
 }
