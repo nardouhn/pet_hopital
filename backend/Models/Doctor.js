@@ -6,7 +6,8 @@ const Doctor = sequelize.define("Doctor", {
   doctor_name: { type: DataTypes.STRING(150), allowNull: false },
   birth: DataTypes.DATEONLY,
   email: DataTypes.STRING(150),
-  phone: DataTypes.STRING(20)
+  phone: DataTypes.STRING(20),
+  specialization: DataTypes.STRING(150)
 }, {
   tableName: "doctor",
   timestamps: false

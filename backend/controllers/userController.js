@@ -290,6 +290,85 @@ module.exports.userLogin = async (req, res) => {
     res.status(500).json(errorResponse(500, "Đăng nhập thất bại", error.message));
   }
 };
+
+/* ================= AUTH / PROFILE ================= */
+
+// GET /auth/me - returns current user info
+module.exports.getMe = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) return res.status(404).json(errorResponse(404, "Người dùng không tồn tại"));
+
+    const u = user.toJSON ? user.toJSON() : { ...user };
+    delete u.password;
+
+    res.status(200).json(successResponse(200, "Lấy thông tin người dùng thành công", u));
+  } catch (error) {
+    res.status(500).json(errorResponse(500, "Lấy thông tin thất bại", error.message));
+  }
+};
+
+// GET /users/profile - for authenticated user
+module.exports.getProfile = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) return res.status(404).json(errorResponse(404, "Người dùng không tồn tại"));
+
+    const u = user.toJSON ? user.toJSON() : { ...user };
+    delete u.password;
+
+    res.status(200).json(successResponse(200, "Lấy hồ sơ người dùng thành công", u));
+  } catch (error) {
+    res.status(500).json(errorResponse(500, "Lấy hồ sơ thất bại", error.message));
+  }
+};
+
+// PUT /users/profile - update authenticated user's profile
+module.exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const payload = {};
+
+    if (req.body.firstName) payload.first_name = req.body.firstName;
+    if (req.body.lastName) payload.last_name = req.body.lastName;
+    if (req.body.email) payload.email = req.body.email;
+    if (req.body.phone) payload.phone = req.body.phone;
+
+    if (req.body.password) {
+      const hashed = await bcrypt.hash(req.body.password, 10);
+      payload.password = hashed;
+    }
+
+    const [updatedCount, updatedRows] = await User.update(payload, {
+      where: { user_id: userId },
+      returning: true
+    });
+
+    if (!updatedCount) return res.status(404).json(errorResponse(404, "Người dùng không tồn tại"));
+
+    const updatedUser = updatedRows[0].toJSON();
+    delete updatedUser.password;
+
+    res.status(200).json(successResponse(200, "Cập nhật hồ sơ thành công", updatedUser));
+  } catch (error) {
+    res.status(500).json(errorResponse(500, "Cập nhật hồ sơ thất bại", error.message));
+  }
+};
+
+// GET /admin/users/:id - get user by id (admin)
+module.exports.getUserById = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id, {
+      attributes: { exclude: ['password'] }
+    });
+    if (!user) return res.status(404).json(errorResponse(404, "Người dùng không tồn tại"));
+
+    res.status(200).json(successResponse(200, "Lấy thông tin người dùng thành công", user));
+  } catch (error) {
+    res.status(500).json(errorResponse(500, "Lấy thông tin thất bại", error.message));
+  }
+};
+
 /* ================= LOGOUT ================= */
 module.exports.logoutUser = async (req, res) => {
   try {
