@@ -3,7 +3,6 @@ import Hero from "@/components/Hero";
 import About from "@/components/About";
 import Services from "@/components/Services";
 import Booking from "@/components/Booking";
-import Testimonials from "@/components/Testimonials";
 import Feedback from "@/components/Feedback";
 import Footer from "@/layouts/Footer";
 import Navbar from "@/layouts/NavBar";
@@ -23,3 +22,4 @@ export default function HomePage() {
     </div>
   );
 }
+
