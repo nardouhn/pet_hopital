@@ -1,6 +1,7 @@
 // src/components/Hero.jsx
 import { motion } from "framer-motion";
-import { Phone, Mail, MapPin, Heart } from "lucide-react";
+import { Phone, Mail, MapPin, Heart, Star } from "lucide-react";
+import heroImage from "../assets/image 4(1)(1).png";
 
 export default function Hero() {
   return (
@@ -8,7 +9,7 @@ export default function Hero() {
       id="home"
       className="pt-32 pb-20 bg-[#F0FAF9] min-h-[90vh] flex items-center"
     >
-      <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-10 items-center px-6">
+      <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center px-6">
         {/* Left content */}
         <motion.div
           initial={{ opacity: 0, x: -80 }}
@@ -16,17 +17,19 @@ export default function Hero() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           viewport={{ once: true }}
         >
-          <div className="inline-flex items-center bg-[#D7F5F3] text-[#0D9488] px-4 py-1 rounded-full text-sm font-medium mb-6">
-            🌟 Tin tưởng từ 100+ gia đình
-          </div>
+          <span className="inline-flex items-center gap-2 bg-[#D7F5F3] text-[#0D9488] px-4 py-1 rounded-full text-sm font-medium mb-6">
+            <Star className="w-4 h-4" /> Tin tưởng từ 100+ gia đình
+          </span>
 
-          <h1 className="text-5xl font-extrabold text-gray-900 leading-tight mb-2">
+          <h1 className="text-5xl font-extrabold text-gray-900 leading-tight mb-4">
             Chăm sóc thú cưng <br />
-            của bạn{" "}
-            <span className="text-[#0D9488]">Niềm vui của chúng tôi!</span>
+            của bạn <br />
+            <span className="bg-[linear-gradient(90deg,#14B8A6_0%,#0EA5E9_100%)] bg-clip-text text-transparent">
+              Niềm vui của chúng tôi!
+            </span>
           </h1>
 
-          <p className="text-gray-600 text-lg mb-6">
+          <p className="text-gray-600 text-lg mb-6 max-w-xl">
             Chúng tôi cung cấp dịch vụ chăm sóc tận tâm và chuyên nghiệp cho
             những người bạn lông xù của bạn.
           </p>
@@ -48,22 +51,25 @@ export default function Hero() {
 
           {/* Buttons */}
           <div className="flex flex-wrap gap-4">
-            <motion.button
+            <motion.a
               whileHover={{ scale: 1.05 }}
-              className="flex items-center bg-[#0D9488] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#0B7D74] transition-colors shadow-md"
+              href="#book"
+              className="inline-flex items-center gap-2 bg-[linear-gradient(90deg,#14B8A6_0%,#0EA5E9_100%)] text-white px-6 py-3 rounded-full font-semibold shadow-md"
             >
-              Đặt lịch hẹn <Heart className="ml-2 w-5 h-5 text-white" />
-            </motion.button>
-            <motion.button
+              Đặt lịch hẹn <Heart className="w-5 h-5" />
+            </motion.a>
+
+            <motion.a
               whileHover={{ scale: 1.05 }}
-              className="flex items-center border-2 border-[#0D9488] text-[#0D9488] px-6 py-3 rounded-full font-semibold hover:bg-[#0D9488] hover:text-white transition-colors"
+              href="#services"
+              className="inline-flex items-center border-2 border-[#5EEAD4] text-[#0D9488] px-6 py-3 rounded-full font-semibold hover:bg-[linear-gradient(90deg,#14B8A6_0%,#0EA5E9_100%)] hover:text-white transition-colors"
             >
               Dịch vụ của chúng tôi
-            </motion.button>
+            </motion.a>
           </div>
         </motion.div>
 
-        {/* Right visual */}
+        {/* Right image */}
         <motion.div
           initial={{ opacity: 0, x: 80 }}
           whileInView={{ opacity: 1, x: 0 }}
@@ -71,54 +77,18 @@ export default function Hero() {
           viewport={{ once: true }}
           className="relative flex justify-center"
         >
-          <div className="bg-gradient-to-br from-[#99F6E4] to-[#7DD3FC] p-10 rounded-3xl shadow-lg relative hover:-translate-y-1 transition-transform">
-            {/* Top pets */}
-            <div className="flex justify-center space-x-4 mb-6">
-              <div className="bg-white p-4 rounded-2xl shadow-md text-2xl hover:-translate-y-1 transition-transform">
-                🐕
-              </div>
-              <div className="bg-white p-4 rounded-2xl shadow-md text-2xl hover:-translate-y-1 transition-transform">
-                🐩
-              </div>
-            </div>
+          <img
+            src={heroImage}
+            className="max-w-md w-full mt-6 object-contain scale-125"
+            style={{ backgroundColor: "transparent" }}
+          />
 
-            {/* Main card */}
-            <div className="bg-white px-8 py-6 rounded-2xl shadow-lg text-center mb-6 hover:-translate-y-1 transition-transform">
-              <div className="text-3xl mb-2">⚕️</div>
-              <h3 className="font-semibold text-gray-800 text-lg">
-                Expert Care with a Smile
-              </h3>
-              <p className="text-gray-500 text-sm">20+ Years of Experience</p>
-            </div>
-
-            {/* Bottom pets */}
-            <div className="flex justify-center space-x-4">
-              <div className="bg-white p-4 rounded-2xl shadow-md text-2xl hover:-translate-y-1 transition-transform">
-                🐰
-              </div>
-              <div className="bg-white p-4 rounded-2xl shadow-md text-2xl hover:-translate-y-1 transition-transform">
-                🐢
-              </div>
-            </div>
-
-            {/* Star decoration */}
-            <motion.div
-              initial={{ rotate: 0 }}
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 6, ease: "linear" }}
-              className="absolute top-4 right-4 bg-yellow-400 p-3 rounded-full shadow-md text-white"
-            >
-              ⭐
-            </motion.div>
-
-            {/* Heart decoration */}
-            <motion.div
-              animate={{ y: [0, -6, 0] }}
-              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-              className="absolute bottom-4 left-[-20px] bg-pink-400 p-3 rounded-full shadow-md text-white"
-            >
-              <Heart className="w-5 h-5" />
-            </motion.div>
+          {/* Decorations */}
+          <div className="absolute -top-1/12 -right-5 bg-[#FDE047] p-3 rounded-full shadow-md text-white">
+            ⭐
+          </div>
+          <div className="absolute -bottom-11 left-5 bg-pink-400 p-3 rounded-full shadow-md text-white">
+            <Heart className="w-5 h-5" />
           </div>
         </motion.div>
       </div>
