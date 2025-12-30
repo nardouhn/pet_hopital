@@ -5,44 +5,55 @@ import { useNavigate } from "react-router-dom";
 export default function TopBar() {
   const navigate = useNavigate();
 
-  function handleLogout() {
+  const handleLogout = () => {
     localStorage.removeItem("auth");
     navigate("/");
-  }
+  };
 
   return (
-    <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
-      <div className="relative w-96">
-        <Search
-          size={18}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-        />
-        <input
-          placeholder="Search patients, appointments, doctors..."
-          className="w-full pl-10 pr-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-teal-300"
-        />
-      </div>
-
-      <div className="flex items-center gap-4">
-        <Bell className="text-gray-500" />
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-full bg-teal-200 flex items-center justify-center font-semibold">
-            A
-          </div>
-          <div className="text-sm">
-            <p className="font-medium">Dr. Admin</p>
-            <p className="text-gray-400 text-xs">Administrator</p>
+    <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="flex items-center justify-between gap-6">
+        {/* Search Bar */}
+        <div className="flex-1 max-w-[504px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search patients, appointments, doctors..."
+              className="w-full bg-gray-50 border border-gray-200 rounded-full pl-10 pr-4 py-2.5 text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-transparent"
+            />
           </div>
         </div>
 
-        <button
-          onClick={handleLogout}
-          className="ml-4 px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 flex items-center gap-2 text-sm"
-        >
-          <LogOut className="w-4 h-4" />
-          Đăng xuất
-        </button>
+        {/* Right Section */}
+        <div className="flex items-center gap-4">
+          {/* Notification Bell */}
+          <button className="relative p-1.5 rounded-full hover:bg-gray-50 transition-colors">
+            <Bell className="size-5 text-gray-600" />
+            <span className="absolute top-1 right-1 size-2 bg-pink-400 rounded-full border-2 border-white"></span>
+          </button>
+
+          {/* User Info */}
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="text-sm font-semibold text-gray-800">Dr. Admin</p>
+              <p className="text-xs text-gray-500">Administrator</p>
+            </div>
+            <div className="size-10 rounded-full bg-gradient-to-br from-teal-300 to-emerald-300 flex items-center justify-center">
+              <span className="text-white font-semibold text-sm">DA</span>
+            </div>
+          </div>
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="p-2 rounded-lg hover:bg-red-50 transition-colors group"
+            title="Logout"
+          >
+            <LogOut className="size-5 text-gray-600 group-hover:text-red-600" />
+          </button>
+        </div>
       </div>
-    </header>
+    </div>
   );
 }

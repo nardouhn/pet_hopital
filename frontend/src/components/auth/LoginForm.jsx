@@ -6,6 +6,23 @@ import { useNavigate } from "react-router-dom";
 import bgImage from "@/assets/image 17.png";
 import { login as apiLogin } from "@/api/mockApi";
 
+const USERS = [
+  {
+    email: "admin@gmail.com",
+    password: "123456",
+    role: "admin",
+    name: "Admin",
+    redirect: "/admin",
+  },
+  {
+    email: "user@gmail.com",
+    password: "123456",
+    role: "user",
+    name: "User",
+    redirect: "/",
+  },
+];
+
 export default function LoginForm() {
   const navigate = useNavigate();
 

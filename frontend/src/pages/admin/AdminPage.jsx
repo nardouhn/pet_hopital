@@ -1,14 +1,22 @@
 import { Outlet } from "react-router-dom";
-import SideBar from "@/components/admin/SideBar";
+import SideBar from "@/components/admin/SideBar.jsx";
 import TopBar from "@/components/admin/TopBar";
 
 export default function AdminPage() {
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <SideBar />
-      <div className="flex-1 flex flex-col">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Sidebar */}
+      <div className="w-[192px] flex-shrink-0">
+        <SideBar />
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Bar */}
         <TopBar />
-        <main className="p-6">
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto">
           <Outlet />
         </main>
       </div>

@@ -136,8 +136,15 @@ const Booking = () => {
           viewport={{ once: true }}
           className="text-center mb-10"
         >
+          <div className="inline-flex items-center gap-2 rounded-full bg-[#CCFBF1] px-4 py-2">
+            <Heart className="h-5 w-5 text-emerald-500" />
+
+            <span className="text-sm font-medium text-emerald-700">
+              Chúng tôi luôn sẵn sàng!
+            </span>
+          </div>
           <h2 className="text-4xl font-bold text-gray-800 mb-2">
-            Đặt lịch ngay !
+            Đặt lịch ngay!
           </h2>
           <p className="text-gray-600">
             Chúng tôi xác nhận lịch hẹn trong vòng 24 giờ 🕒
@@ -174,7 +181,7 @@ const Booking = () => {
                 value={form.ownerName}
                 onChange={handleChange}
                 placeholder="Nguyễn Quốc"
-                className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                className={inputStyle(form.ownerName)}
                 required
               />
             </div>
@@ -190,7 +197,7 @@ const Booking = () => {
                 value={form.petName}
                 onChange={handleChange}
                 placeholder="Hiệu"
-                className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                className={inputStyle(form.petName)}
                 required
               />
             </div>
@@ -206,7 +213,7 @@ const Booking = () => {
                 value={form.petType}
                 onChange={handleChange}
                 placeholder="Chó, mèo,..."
-                className="w-full border border-gray-200 rounded-lg px-4 py-2 bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                className={inputStyle(form.petType)}
                 required
               />
             </div>
@@ -222,7 +229,7 @@ const Booking = () => {
                 value={form.service}
                 onChange={handleChange}
                 placeholder="Khám sức khỏe, tiêm phòng..."
-                className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                className={inputStyle(form.service)}
                 required
               />
             </div>
@@ -238,8 +245,8 @@ const Booking = () => {
                   selected={form.date}
                   onChange={(date) => setForm({ ...form, date })}
                   dateFormat="dd/MM/yyyy"
-                  placeholderText="Chọn ngày"
-                  className="w-full border border-gray-200 rounded-lg px-10 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                  placeholderText="Chọn ngày (dd/MM/yyyy)"
+                  className={inputStyle(form.date)}
                   minDate={new Date()}
                   required
                 />
@@ -255,7 +262,7 @@ const Booking = () => {
                 name="timeSlot"
                 value={form.timeSlot}
                 onChange={handleChange}
-                className="w-full border border-gray-200 rounded-lg px-4 py-2 bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                className={inputStyle(form.timeSlot)}
               >
                 <option value="">Chọn khung giờ</option>
                 <option>08:00 - 10:00</option>
@@ -276,7 +283,7 @@ const Booking = () => {
                 onChange={handleChange}
                 placeholder="Mô tả ..."
                 rows={3}
-                className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                className={inputStyle(form.description)}
               ></textarea>
             </div>
           </div>
@@ -287,14 +294,25 @@ const Booking = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.97 }}
               type="submit"
-              className="bg-gradient-to-r from-teal-400 to-cyan-400 text-white font-semibold px-8 py-3 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-2 mx-auto"
+              className="bg-[linear-gradient(90deg,#14B8A6_0%,#0EA5E9_100%)] text-white font-semibold px-8 py-3 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-2 mx-auto"
             >
               Đặt lịch hẹn ngay
               <PawPrint className="w-5 h-5" />
             </motion.button>
           </div>
         </motion.form>
-        )}
+
+        <div className="flex items-center justify-center h-full">
+          <div className="inline-flex items-center mt-6 gap-3 bg-white px-6 py-3 rounded-xl shadow-[0_8px_20px_rgba(0,0,0,0.15)]">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-50">
+              <Clock className="w-5 h-5 text-[#0D9488]" />
+            </div>
+
+            <span className="text-gray-800 font-medium text-sm md:text-base">
+              Mở cửa Thứ Hai - Thứ Sáu, <strong>9:00 AM - 6:00 PM</strong>
+            </span>
+          </div>
+        </div>
 
         {/* Modal xác nhận */}
         <AnimatePresence>
