@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import AdminLayout from "@/components/admin/AdminLayout";
-import { getOverviewStats, getRecentAppointments } from "@/api/mockApi";
+import { getOverviewStats, getRecentAppointments } from "@/api/mockApi"; // AdminPage provides layout (sidebar/topbar); avoid nesting AdminLayout which caused duplicate sidebars
 
 export default function Overview() {
   const [stats, setStats] = useState([]);
@@ -26,7 +25,7 @@ export default function Overview() {
   }
 
   return (
-    <AdminLayout>
+    <>
       <h1 className="text-2xl font-bold mb-6">Tổng quan</h1>
 
       <div className="grid md:grid-cols-4 gap-6 mb-8">
@@ -46,6 +45,6 @@ export default function Overview() {
           </p>
         ))}
       </div>
-    </AdminLayout>
+    </>
   );
 }

@@ -53,8 +53,10 @@ export default function LoginForm() {
         window.dispatchEvent(new Event('authChanged'));
       } catch (e) {}
 
-      // Navigate to home after a tiny delay so components have time to react
-      setTimeout(() => navigate('/'), 50);
+      // Navigate after login: admins go to /admin, regular users go to home.
+      // Use the role returned from the server (user_type or role).
+      const role = userObj.user_type || userObj.role || 'customer';
+      setTimeout(() => navigate(role === 'admin' ? '/admin' : '/'), 50);
     } catch (err) {
       setError(err?.message || "Đăng nhập thất bại");
     } finally {

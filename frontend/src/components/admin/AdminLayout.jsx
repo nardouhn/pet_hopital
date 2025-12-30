@@ -1,4 +1,6 @@
 // src/components/admin/AdminLayout.jsx
+// NOTE: AdminPage (route-level) provides the sidebar & topbar layout. Avoid nesting AdminLayout
+// inside the /admin route to prevent duplicate sidebars; prefer using route <AdminPage /> with <Outlet />.
 import SideBar from "./SideBar";
 import TopBar from "./TopBar";
 
