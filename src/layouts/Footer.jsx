@@ -17,7 +17,7 @@ export default function Footer({ variant = "default" }) {
 function DefaultFooter() {
   return (
     <div>
-      <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+      <div className="max-w-7xl mx-auto px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
         {/* LEFT */}
         <Brand1 />
 
@@ -32,8 +32,8 @@ function DefaultFooter() {
 /* ================= COMPACT (ẢNH 2) ================= */
 function CompactFooter() {
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+    <div className="max-w-7xl mx-auto px-6 py-2">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-1">
         {/* LEFT */}
         <Brand2 />
 
@@ -106,7 +106,7 @@ function Nav({ dots = false }) {
 
 function Contact() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div className="flex items-center gap-4">
         <div className="bg-white/20 p-2 rounded-full">
           <Phone className="w-5 h-5" />
