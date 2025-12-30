@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, PawPrint, CheckCircle2, X } from "lucide-react";
 import DatePicker from "react-datepicker";
-import ServiceSelect from "@/components/ServiceSelect";
+import { createAppointment } from "@/api/mockApi";
+import { useNavigate } from "react-router-dom";
 
 const Booking = () => {
   const [form, setForm] = useState({
@@ -16,6 +17,12 @@ const Booking = () => {
   });
 
   const [showModal, setShowModal] = useState(false);
+  const navigate = useNavigate();
+
+  // Check auth once for UI gating (guests cannot book)
+  let auth = null;
+  try { auth = JSON.parse(localStorage.getItem('auth')); } catch (e) { auth = null; }
+  const isAuthenticated = !!(auth && auth.isAuthenticated);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -36,35 +43,85 @@ const Booking = () => {
       return;
     }
 
+    // Check auth
+    const authRaw = localStorage.getItem("auth");
+    const authObj = authRaw ? JSON.parse(authRaw) : null;
+    if (!authObj || !authObj.isAuthenticated) {
+      alert("Vui lòng đăng nhập để đặt lịch");
+      navigate("/login");
+      return;
+    }
+
     try {
+      // call backend
       const payload = {
         ownerName: form.ownerName,
         petName: form.petName,
         petBreed: form.petType,
         service: form.service,
-        date: form.date.toISOString().split('T')[0],
+        date: form.date.toISOString().split("T")[0],
         timeslot: form.timeSlot,
         symptoms: form.description,
       };
 
-      const res = await import('@/api/api').then(m => m.createAppointment(payload));
-      if (res && res.code === 201) {
-        setShowModal(true);
-        setForm({
-          ownerName: "",
-          petName: "",
-          petType: "",
-          service: "",
-          date: null,
-          timeSlot: "",
-          description: "",
-        });
-      } else {
-        alert(res?.message || 'Failed to create appointment');
-      }
+      const res = await createAppointment(payload);
+
+      // If backend returned updated user/pet info, sync into localStorage so profile shows new pet
+      try {
+        if (res && res.user) {
+          const authRaw = localStorage.getItem('auth');
+          const authObj = authRaw ? JSON.parse(authRaw) : {};
+          const updatedAuth = {
+            ...authObj,
+            isAuthenticated: true,
+            role: res.user.user_type || authObj.role,
+            user: {
+              name: `${res.user.first_name || ''} ${res.user.last_name || ''}`.trim() || authObj?.user?.name,
+              email: res.user.email || authObj?.user?.email,
+              pets_count: res.user.pets_count ?? (res.user.pets ? res.user.pets.length : 0),
+              pets: res.user.pets || authObj?.user?.pets || []
+            }
+          };
+          localStorage.setItem('auth', JSON.stringify(updatedAuth));
+          try { window.dispatchEvent(new Event('authChanged')); } catch (e) {}
+        }
+      } catch (e) {}
+
+      // Hiện popup xác nhận
+      setShowModal(true);
+
+      // Reset form
+      setForm({
+        ownerName: "",
+        petName: "",
+        petType: "",
+        service: "",
+        date: null,
+        timeSlot: "",
+        description: "",
+      });
     } catch (err) {
-      console.error(err);
-      alert(err?.response?.data?.message || err.message || 'Failed to create appointment');
+      // Log detailed error for debugging
+      console.error('Appointment creation failed', err);
+      const msgLower = err && err.message ? err.message.toLowerCase() : '';
+      const message =
+        msgLower.includes('network error')
+          ? 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra kết nối hoặc thử lại.'
+          : (err && err.message) || 'Đặt lịch thất bại';
+      alert(message);
+
+      // If auth-related, clear auth and redirect to login
+      if (
+        msgLower.includes('please login') ||
+        msgLower.includes('session expired') ||
+        msgLower.includes('token') ||
+        msgLower.includes('unauthorized')
+      ) {
+        try {
+          localStorage.removeItem('auth');
+        } catch (e) {}
+        navigate('/login');
+      }
     }
   };
 
@@ -88,14 +145,23 @@ const Booking = () => {
         </motion.div>
 
         {/* Form */}
-        <motion.form
-          onSubmit={handleSubmit}
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="bg-white rounded-3xl shadow-lg p-8 md:p-10 border border-teal-100"
-        >
+        {!isAuthenticated ? (
+          <div className="bg-white rounded-3xl shadow-lg p-8 md:p-10 border border-teal-100 text-center">
+            <p className="font-semibold text-gray-700 mb-4">Bạn cần đăng nhập để đặt lịch hẹn</p>
+            <div className="flex gap-3 justify-center">
+              <button onClick={() => navigate('/login')} className="px-6 py-2 rounded-full bg-[#2e94a5] text-white hover:opacity-90 transition-opacity duration-200">Đăng nhập</button>
+              <button onClick={() => navigate('/signup')} className="px-6 py-2 rounded-full border border-[#2e94a5] text-[#2e94a5] hover:bg-[#2e94a5] hover:text-white transition-colors duration-200">Đăng ký</button>
+            </div>
+          </div>
+        ) : (
+          <motion.form
+            onSubmit={handleSubmit}
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="bg-white rounded-3xl shadow-lg p-8 md:p-10 border border-teal-100"
+          >
           <div className="grid md:grid-cols-2 gap-6">
             {/* Tên chủ */}
             <div>
@@ -197,11 +263,6 @@ const Booking = () => {
                 <option>13:00 - 15:00</option>
                 <option>15:00 - 17:00</option>
               </select>
-            {/* load services dynamically */}
-            <div className="mt-3">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Chọn dịch vụ</label>
-              <ServiceSelect value={form.service} onChange={(v)=>setForm({...form, service:v})} />
-            </div>
             </div>
 
             {/* Mô tả */}
@@ -233,6 +294,7 @@ const Booking = () => {
             </motion.button>
           </div>
         </motion.form>
+        )}
 
         {/* Modal xác nhận */}
         <AnimatePresence>

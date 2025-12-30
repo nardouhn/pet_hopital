@@ -1,8 +1,19 @@
 // src/components/Hero.jsx
 import { motion } from "framer-motion";
 import { Phone, Mail, MapPin, Heart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function Hero() {
+  const navigate = useNavigate();
+
+  // helper to check simple auth state stored in localStorage
+  const isAuthenticated = () => {
+    try {
+      const a = JSON.parse(localStorage.getItem('auth'));
+      return !!(a && a.isAuthenticated);
+    } catch (e) { return false; }
+  };
+
   return (
     <section
       id="home"
@@ -50,13 +61,17 @@ export default function Hero() {
           <div className="flex flex-wrap gap-4">
             <motion.button
               whileHover={{ scale: 1.05 }}
-              className="flex items-center bg-[#0D9488] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#0B7D74] transition-colors shadow-md"
+              onClick={() => {
+                return navigate('/#book');
+              }}
+              className="flex items-center bg-[#0D9488] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#0B7D74] transition-colors shadow-md cursor-pointer"
             >
               Đặt lịch hẹn <Heart className="ml-2 w-5 h-5 text-white" />
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
-              className="flex items-center border-2 border-[#0D9488] text-[#0D9488] px-6 py-3 rounded-full font-semibold hover:bg-[#0D9488] hover:text-white transition-colors"
+              onClick={() => navigate('/#services')}
+              className="flex items-center border-2 border-[#0D9488] text-[#0D9488] px-6 py-3 rounded-full font-semibold hover:bg-[#0D9488] hover:text-white transition-colors cursor-pointer"
             >
               Dịch vụ của chúng tôi
             </motion.button>

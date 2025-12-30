@@ -1,105 +1,193 @@
-// src/components/Navbar.jsx
-import { PawPrint } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useEffect, useState } from 'react';
+import { PawPrint, User, LogOut, Calendar } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { getProfile } from '@/api/mockApi';
 
 export default function Navbar() {
-  const [authed, setAuthed] = useState(Boolean(localStorage.getItem('token')));
-  const [upcomingCount, setUpcomingCount] = useState(0);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [upcoming, setUpcoming] = useState([]);
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
-  useEffect(()=>{
-    const onLogin = ()=> setAuthed(true);
-    const onLogout = ()=> { setAuthed(false); setUpcomingCount(0); setUpcoming([]); };
-    window.addEventListener('user:login', onLogin);
-    window.addEventListener('user:logout', onLogout);
+  const [auth, setAuth] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("auth"));
+    } catch (e) {
+      return null;
+    }
+  });
 
-    if (authed) {
-      // fetch appointments count and top items
-      import('@/api/api').then(m => m.getMyAppointments()).then(r => {
-        const rows = r.data || [];
-        setUpcoming(rows.length);
-        setUpcomingCount(rows.length);
-        setUpcoming(rows.slice(0,3));
-      }).catch(()=>{});
+  const isUser = auth?.isAuthenticated && ["user", "customer", "client"].includes(auth.role);
+
+  useEffect(() => {
+    function onAuthChange() {
+      try {
+        setAuth(JSON.parse(localStorage.getItem("auth")));
+      } catch (e) {
+        setAuth(null);
+      }
     }
 
-    return ()=>{
-      window.removeEventListener('user:login', onLogin);
-      window.removeEventListener('user:logout', onLogout);
-    };
-  },[authed]);
+    window.addEventListener("authChanged", onAuthChange);
+    window.addEventListener("storage", onAuthChange);
 
-  const handleLogout = async () => {
-    try{
-      await import('@/api/api').then(m=>m.logoutUser());
-      // events handled by API
-      window.location.href = '/';
-    }catch(e){ console.error(e); localStorage.removeItem('token'); window.dispatchEvent(new Event('user:logout')); window.location.href = '/'; }
-  };
+    // If user is authenticated but auth.user data is missing, attempt to fetch from backend
+    async function syncProfile() {
+      try {
+        const current = JSON.parse(localStorage.getItem("auth"));
+        if (!current || !current.isAuthenticated) return;
+        const hasUserInfo = current.user && current.user.email && current.user.name;
+        if (hasUserInfo) return;
+        // Use API helper to fetch profile (handles token attach)
+        const u = await getProfile();
+        if (u) {
+          const updatedAuth = {
+            ...current,
+            role: u.user_type || current.role,
+            user: {
+              name: `${u.first_name || u.firstName || ''} ${u.last_name || u.lastName || ''}`.trim() || current.user?.name,
+              email: u.email || current.user?.email,
+              pets_count: u.pets_count ?? (u.pets ? u.pets.length : 0),
+              pets: u.pets || current.user?.pets || []
+            }
+          };
+          localStorage.setItem("auth", JSON.stringify(updatedAuth));
+          setAuth(updatedAuth);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    syncProfile();
+
+    return () => {
+      window.removeEventListener("authChanged", onAuthChange);
+      window.removeEventListener("storage", onAuthChange);
+    };
+  }, []);
+
+  function handleLogout() {
+    localStorage.removeItem("auth");
+    setAuth(null);
+    setOpen(false);
+    navigate("/");
+  }
+
+  // Đóng dropdown khi click ngoài
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <header className="w-full bg-white shadow-sm fixed top-0 left-0 z-50">
       <div className="max-w-7xl mx-auto flex justify-between items-center py-4 px-6 border-b border-teal-100">
         {/* Logo */}
-        <div className="flex items-center space-x-2">
+        <Link to="/" className="flex items-center space-x-2">
           <div className="bg-[linear-gradient(90deg,#14B8A6_0%,#0EA5E9_100%)] p-2 rounded-full">
             <PawPrint className="text-[#D7F5F3] w-5 h-5" />
           </div>
-          <a href="/" className="font-bold text-xl text-[#0D9488]">
+          <span className="font-bold text-xl text-[#0D9488]">
             Petorium Vet Clinic
-          </a>
-        </div>
+          </span>
+        </Link>
 
         {/* Menu */}
-        <nav className="hidden md:flex space-x-8 text-gray-600 font-medium items-center">
-          <a href="/#about" className="hover:text-[#0891B2] transition-colors">
+        <nav className="hidden md:flex items-center space-x-8 text-gray-600 font-medium">
+          <a href="/#about" className="hover:text-[#0891B2]">
             About
           </a>
-          <a
-            href="#services"
-            className="hover:text-[#0891B2] transition-colors"
-          >
+          <a href="/#services" className="hover:text-[#0891B2]">
             Services
           </a>
-          <a href="#book" className="hover:text-[#0891B2] transition-colors">
+          <button onClick={() => {
+            try {
+              const current = JSON.parse(localStorage.getItem('auth')) || null;
+              if (!current || !current.isAuthenticated) {
+                // guest -> redirect to login
+                return navigate('/login');
+              }
+            } catch (e) {
+              return navigate('/login');
+            }
+            // authenticated users: go to homepage anchor
+            window.location.href = '/#book';
+          }} className="hover:text-[#0891B2]">
             Book Now
-          </a>
+          </button>
 
-          {authed ? (
-            <div className="flex items-center gap-4">
-              <a href="/profile" className="hover:text-[#0891B2] transition-colors">Profile</a>
+          {/* ❌ Chưa đăng nhập */}
+          {!auth && (
+            <Link
+              to="/login"
+              className="hover:text-[#0891B2] transition-colors"
+            >
+              Login / Sign up
+            </Link>
+          )}
 
-              <div className="relative">
-                <button onClick={()=>setShowDropdown(s=>!s)} className="hover:text-[#0891B2] transition-colors">My Appointments {upcomingCount>0 && (<span className="ml-1 inline-block bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{upcomingCount}</span>)}</button>
-                {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded shadow p-3 z-50">
-                    <div className="text-sm text-gray-600 mb-2">Upcoming</div>
-                    {upcoming.length===0 ? (<div className="text-gray-500 text-sm">No upcoming appointments</div>) : (
-                      upcoming.map(a => (
-                        <div key={a.appointment_id} className="border-b last:border-b-0 pb-2 mb-2">
-                          <div className="font-medium">{a.service}</div>
-                          <div className="text-xs text-gray-500">{a.date} • {a.timeslot}</div>
-                          <a href={`/appointment/${a.appointment_id}`} className="text-xs text-teal-600">Track</a>
-                        </div>
-                      ))
-                    )}
-                    <div className="mt-2 text-center">
-                      <a href="/appointments/my" className="text-sm text-teal-600">View all</a>
-                    </div>
+          {/* ✅ User đăng nhập */}
+          {isUser && (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setOpen(!open)}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-teal-100 text-teal-700 hover:bg-teal-200"
+              >
+                <User className="w-5 h-5" />
+              </button>
+
+              {open && (
+                <div className="absolute right-0 mt-3 w-64 bg-white rounded-xl shadow-xl border border-teal-100 overflow-hidden">
+                  {/* User info */}
+                  <div className="px-4 py-3 bg-teal-50 border-b">
+                    <p className="text-sm font-semibold text-gray-800">
+                      {auth.user.name}
+                    </p>
+                    <p className="text-xs text-gray-500">{auth.user.email}</p>
                   </div>
-                )}
-              </div>
 
-              <button onClick={handleLogout} className="hover:text-[#0891B2] transition-colors">Logout</button>
+                  {/* Actions */}
+                  <button
+                    onClick={() => {
+                      setOpen(false);
+                      navigate("/profile");
+                    }}
+                    className="w-full px-4 py-2 flex items-center gap-3 text-sm hover:bg-teal-50"
+                  >
+                    <User className="w-4 h-4 text-teal-600" />
+                    Hồ sơ cá nhân
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setOpen(false);
+                      navigate("/appointments");
+                    }}
+                    className="w-full px-4 py-2 flex items-center gap-3 text-sm hover:bg-teal-50"
+                  >
+                    <Calendar className="w-4 h-4 text-teal-600" />
+                    Tra cứu lịch hẹn
+                  </button>
+
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-2 flex items-center gap-3 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Đăng xuất
+                  </button>
+                </div>
+              )}
             </div>
-          ) : (
-            <a href="/signup" className="hover:text-[#0891B2] transition-colors">Login/ Sign up</a>
           )}
         </nav>
       </div>
-      <div className="border-b border-[#7DE2D1]"></div>
     </header>
   );
 }

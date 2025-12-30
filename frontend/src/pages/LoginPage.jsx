@@ -9,7 +9,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-teal-50 to-white">
       <NavBar />
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 pt-24">
         <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-teal-100 px-4 py-1 text-sm text-teal-700">
           <Heart className="w-4 h-4" /> Log in
         </span>

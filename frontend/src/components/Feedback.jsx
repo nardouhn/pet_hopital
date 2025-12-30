@@ -2,15 +2,21 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Heart, Star } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
+import { getReviews, submitFeedback } from "@/api/mockApi";
 
 const Feedback = () => {
+  // Hide entire feedback section for logged-in users (business rule)
+  let auth = null;
+  try { auth = JSON.parse(localStorage.getItem('auth')); } catch (e) { auth = null; }
+  if (auth && auth.isAuthenticated) return null;
+
   const [form, setForm] = useState({ name: "", email: "", feedback: "" });
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!form.name || !form.email || !form.feedback) {
@@ -20,27 +26,56 @@ const Feedback = () => {
       return;
     }
 
-    toast.success("✅ Gửi feedback thành công!", { position: "top-right" });
-    setForm({ name: "", email: "", feedback: "" });
+    try {
+      const payload = { subject: `Feedback from ${form.name}`, message: form.feedback };
+      const res = await submitFeedback(payload);
+      if (res.success) {
+        toast.success("✅ Gửi feedback thành công!", { position: "top-right" });
+        setForm({ name: "", email: "", feedback: "" });
+        // refresh reviews
+        fetchReviews();
+      } else {
+        toast.error(res.message || "Gửi thất bại");
+      }
+    } catch (err) {
+      console.error('Feedback submit failed', err);
+      // Provide a more user-friendly message for network/CORS errors
+      const msg = (err && err.message) ? err.message : 'Gửi thất bại';
+      if (msg.toLowerCase().includes('cors') || msg.toLowerCase().includes('network') || msg.toLowerCase().includes('failed to fetch')) {
+        toast.error('❗ Lỗi kết nối: không thể liên hệ server hoặc bị chặn bởi CORS. Vui lòng kiểm tra backend đang chạy và FRONTEND_URL.', { position: 'top-right' });
+      } else {
+        toast.error(msg);
+      }
+    }
   };
 
-  const reviews = [
-    {
-      name: "Trang Lê",
-      pet: "Max (Chó Poodle)",
-      text: "Bác sĩ ở đây siêu dễ thương luôn! Bé chó nhà mình đi khám mà cứ vẫy đuôi suốt. Dịch vụ tận tâm, chỗ sạch sẽ nữa!",
-    },
-    {
-      name: "Hải Đăng",
-      pet: "Luna (Mèo Anh lông dài)",
-      text: "Phòng khám cực kỳ chuyên nghiệp, bác sĩ nhẹ nhàng và giải thích rõ ràng. Mình yên tâm 100% khi đưa bé mèo tới đây.",
-    },
-    {
-      name: "Tú Anh",
-      pet: "Đen (Chó cỏ)",
-      text: "Thật sự biết ơn vì đã cứu bé cún của mình hôm đó. Ai nuôi pet mà cần chỗ uy tín thì tới đây liền nha!",
-    },
-  ];
+  const [reviews, setReviews] = useState([]);
+
+  async function fetchReviews() {
+    try {
+      const r = await getReviews();
+      setReviews(r);
+    } catch (err) {
+      // fallback: keep empty or previous
+      setReviews([
+        {
+          name: "Trang Lê",
+          pet: "Max (Chó Poodle)",
+          text: "Bác sĩ ở đây siêu dễ thương luôn! Bé chó nhà mình đi khám mà cứ vẫy đuôi suốt. Dịch vụ tận tâm, chỗ sạch sẽ nữa!",
+        },
+        {
+          name: "Hải Đăng",
+          pet: "Luna (Mèo Anh lông dài)",
+          text: "Phòng khám cực kỳ chuyên nghiệp, bác sĩ nhẹ nhàng và giải thích rõ ràng. Mình yên tâm 100% khi đưa bé mèo tới đây.",
+        },
+      ]);
+    }
+  }
+
+  // load on mount
+  React.useEffect(() => {
+    fetchReviews();
+  }, []);
 
   return (
     <section className="bg-gradient-to-b from-white to-teal-50 py-20 px-6">
