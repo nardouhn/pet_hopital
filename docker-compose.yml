@@ -16,7 +16,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: petorium_backend_flask:latest
     container_name: backend_flask_app
     restart: always
     env_file:
@@ -27,6 +26,7 @@ services:
       - ./backend:/app
     depends_on:
       - db
+
   frontend:
     image: node:20
     container_name: frontend_app
@@ -43,4 +43,3 @@ services:
 
 volumes:
   postgres_data:
-
