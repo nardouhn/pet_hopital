@@ -1,3 +1,94 @@
+# services:
+#   db:
+#     image: postgres:15
+#     container_name: postgres_db
+#     restart: always
+#     environment:
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: example
+#       POSTGRES_DB: vet_clinic
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+
+#   backend:
+#     build:
+#       context: ./backend
+#       dockerfile: Dockerfile
+#     image: petorium_backend_flask:latest
+#     container_name: backend_flask_app
+#     restart: always
+#     env_file:
+#       - ./backend/.env
+#     ports:
+#       - "8080:8080"
+#     volumes:
+#       - ./backend:/app
+#     depends_on:
+#       - db
+#   frontend:
+#     image: node:20
+#     container_name: frontend_app
+#     restart: always
+#     working_dir: /app
+#     environment:
+#       - VITE_API_BASE=http://localhost:8080
+#     volumes:
+#       - ./frontend:/app
+#       - /app/node_modules
+#     ports:
+#       - "5173:5173"
+#     command: ["sh", "-c", "npm ci && npm run dev -- --host 0.0.0.0"]
+
+# volumes:
+#   postgres_data:
+# services:
+#   db:
+#     image: postgres:15
+#     container_name: postgres_db
+#     restart: always
+#     environment:
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: example
+#       POSTGRES_DB: vet_clinic
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+
+#   backend:
+#     build:
+#       context: ./backend
+#       dockerfile: Dockerfile
+#     image: petorium_backend_flask:latest
+#     container_name: backend_flask_app
+#     restart: always
+#     env_file:
+#       - ./backend/.env
+#     ports:
+#       - "8080:8080"
+#     volumes:
+#       - ./backend:/app
+#     depends_on:
+#       - db
+#   frontend:
+#     image: node:20
+#     container_name: frontend_app
+#     restart: always
+#     working_dir: /app
+#     environment:
+#       - VITE_API_BASE=http://localhost:8080
+#     volumes:
+#       - ./frontend:/app
+#       - /app/node_modules
+#     ports:
+#       - "5173:5173"
+#     command: ["sh", "-c", "npm ci && npm run dev -- --host 0.0.0.0"]
+
+# volumes:
+#   postgres_data:
+
 services:
   db:
     image: postgres:15
@@ -33,7 +124,9 @@ services:
     restart: always
     working_dir: /app
     environment:
-      - VITE_API_BASE=http://localhost:8080
+      # Leave VITE_API_BASE empty to use relative paths (so Vite can proxy). Set VITE_DEV_PROXY_TARGET to backend service for in-container proxying.
+      - VITE_API_BASE=
+      - VITE_DEV_PROXY_TARGET=http://backend:8080
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -43,3 +136,4 @@ services:
 
 volumes:
   postgres_data:
+

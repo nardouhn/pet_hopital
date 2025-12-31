@@ -1,6 +1,8 @@
 const delay = (ms = 600) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080";
+// Use a relative base by default in development so Vite's dev server can proxy API requests
+// when running inside Docker. Production builds can set VITE_API_BASE to an absolute URL.
+const BASE = import.meta.env.VITE_API_BASE ?? "";
 
 async function request(path, { method = "GET", body, auth = true } = {}) {
   const headers = {};
@@ -365,7 +367,7 @@ export async function getMyAppointments() {
           doctor_name: 'BS. Trần Minh',
           service: 'Tiêm vacxin',
           description: 'Tiêm phòng định kỳ',
-          invoice_url: 'http://localhost:8080/invoices/102',
+          invoice_url: `${BASE}/invoices/102`,
           status: 'pending'
         },
         {
@@ -407,7 +409,7 @@ export async function getMyAppointments() {
           doctor_name: 'BS. Hà',
           service: 'Spa',
           description: 'Gội và cắt móng',
-          invoice_url: 'http://localhost:8080/invoices/202',
+          invoice_url: `${BASE}/invoices/202`,
           status: 'pending'
         }
       ];
