@@ -83,33 +83,26 @@ export async function getOverviewStats() {
 
 export async function getRecentAppointments() {
   try {
-    const res = await request("/appointment/getall");
+    // Use admin endpoint to include user/pet/doctor details and latest-first ordering
+    const res = await request("/admin/appointments");
     const rows = res?.data || [];
+    // Sort latest by created_at or booking_date (fallback to appointment_id)
+    rows.sort((a, b) => {
+      const ad = a.booking_date || a.created_at || a.appointment_id || 0;
+      const bd = b.booking_date || b.created_at || b.appointment_id || 0;
+      return new Date(bd) - new Date(ad);
+    });
     return rows.slice(0, 10).map((r) => ({
-      pet: r.pet_name || r.petName || "-",
-      owner: r.owner_name || r.ownerName || "-",
-      doctor: r.doctor_id ? `BS. #${r.doctor_id}` : r.doctor || "-",
-      time: r.timeslot || "-",
+      pet: r.pet?.name || r.pet_name || "-",
+      owner: r.user ? `${r.user.first_name || ''} ${r.user.last_name || ''}`.trim() : (r.owner_name || "-"),
+      doctor: r.doctor?.doctor_name || r.doctor_name || r.doctor || "-",
+      time: r.timeslot || r.check_in || "-",
       status: r.status || "-",
     }));
   } catch (err) {
+    console.error('getRecentAppointments error', err);
     await delay();
-    return [
-      {
-        pet: "Max",
-        owner: "Nguyễn Văn A",
-        doctor: "BS. Minh",
-        time: "09:00",
-        status: "Đang khám",
-      },
-      {
-        pet: "Luna",
-        owner: "Lê Thị B",
-        doctor: "BS. Lan",
-        time: "10:30",
-        status: "Chờ",
-      },
-    ];
+    return [];
   }
 }
 
@@ -636,3 +629,119 @@ export async function updateVaccination(vaxId, payload) {
     throw err;
   }
 }
+
+export async function getAdminAppointments() {
+  try {
+    const res = await request('/admin/appointments');
+    return res?.data || [];
+  } catch (err) {
+    await delay();
+    return [];
+  }
+}
+
+export async function getAdminDoctors() {
+  try {
+    const res = await request('/admin/doctors');
+    return res?.data || [];
+  } catch (err) {
+    await delay();
+    return [];
+  }
+}
+
+export async function getAdminPets() {
+  try {
+    const res = await request('/admin/pets');
+    return res?.data || [];
+  } catch (err) {
+    await delay();
+    return [];
+  }
+}
+
+// Compatibility `api` object used by some admin pages and legacy imports
+export const api = {
+  getVisits: async () => {
+    try {
+      const rows = await request('/admin/appointments');
+      return rows?.data || rows || [];
+    } catch (err) {
+      await delay();
+      return [];
+    }
+  },
+
+  getServices: async () => {
+    try {
+      const res = await request('/admin/services');
+      return res?.data || [];
+    } catch (err) {
+      await delay();
+      return [];
+    }
+  },
+
+  getMedications: async () => {
+    try {
+      const res = await request('/medicine');
+      return res?.data || res || [];
+    } catch (err) {
+      await delay();
+      return [];
+    }
+  },
+
+  getInvoices: async () => {
+    try {
+      const res = await request('/admin/invoices');
+      return res?.data || [];
+    } catch (err) {
+      await delay();
+      return [];
+    }
+  },
+
+  getHotelBookings: async () => {
+    try {
+      const res = await request('/admin/hotel/bookings');
+      return res?.data || [];
+    } catch (err) {
+      await delay();
+      return [];
+    }
+  },
+
+  getHotelRooms: async () => {
+    try {
+      const res = await request('/admin/hotel/rooms');
+      return res?.data || [];
+    } catch (err) {
+      await delay();
+      return [];
+    }
+  },
+
+  getMedicalRecords: async () => {
+    try {
+      const res = await request('/medical');
+      return res?.data || [];
+    } catch (err) {
+      await delay();
+      return [];
+    }
+  },
+
+  getMedicalRecordByReportId: async (reportId) => {
+    try {
+      const res = await request(`/medical/report/${reportId}`);
+      return res?.data || res || null;
+    } catch (err) {
+      await delay();
+      return null;
+    }
+  },
+};
+
+// Also provide default export for compatibility
+export default api;

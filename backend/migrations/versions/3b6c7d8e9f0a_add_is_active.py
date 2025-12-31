@@ -15,9 +15,15 @@ depends_on = None
 
 
 def upgrade():
-    # Add is_active column with default TRUE for existing rows
-    op.add_column('users', sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('true')))
+    # Add is_active column with default TRUE for existing rows, but only if it doesn't already exist
+    conn = op.get_bind()
+    has_col = bool(conn.execute(sa.text("SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='is_active' ")).fetchone())
+    if not has_col:
+        op.add_column('users', sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('true')))
 
 
 def downgrade():
-    op.drop_column('users', 'is_active')
+    conn = op.get_bind()
+    has_col = bool(conn.execute(sa.text("SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='is_active' ")).fetchone())
+    if has_col:
+        op.drop_column('users', 'is_active')

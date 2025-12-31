@@ -42,4 +42,14 @@ def create_app(config_object=None):
     def health():
         return { 'status': 'ok' }
 
+    # Register CLI commands
+    try:
+        # Import here to avoid circular imports at module import time
+        from .cli import seed_admin, seed_defaults
+        app.cli.add_command(seed_admin)
+        app.cli.add_command(seed_defaults)
+    except Exception:
+        # If CLI registration fails, don't break app startup
+        pass
+
     return app

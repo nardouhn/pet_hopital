@@ -66,3 +66,22 @@ if __name__ == '__main__':
         else:
             upgrade()
             print('Migrations applied')
+
+        # Optionally run admin or default user seeding after migrations if explicitly enabled.
+        # This is environment-driven and disabled by default to avoid accidental creation.
+        # To create ONLY the admin using env ADMIN_EMAIL/ADMIN_PASSWORD set ADMIN_CREATE_ON_MIGRATE=true
+        admin_seed_flag = os.environ.get('ADMIN_CREATE_ON_MIGRATE', '').lower()
+        if admin_seed_flag in ('1', 'true', 'yes'):
+            from app.utils.seed_admin import create_admin_from_env
+            created = create_admin_from_env()
+            if created:
+                print('[migrate] Admin ensured from environment variables')
+            else:
+                print('[migrate] ADMIN_EMAIL and ADMIN_PASSWORD not provided; skipping admin creation')
+
+        # To create both default admin + normal user (using ADMIN_* and USER_* env vars or dev defaults):
+        defaults_flag = os.environ.get('DEFAULT_USERS_CREATE_ON_MIGRATE', '').lower()
+        if defaults_flag in ('1', 'true', 'yes'):
+            from app.utils.seed_admin import create_defaults_from_env
+            create_defaults_from_env()
+            print('[migrate] Default admin and user ensured (using ADMIN_/USER_ env vars or dev defaults)')
