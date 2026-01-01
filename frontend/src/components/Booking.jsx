@@ -65,7 +65,7 @@ const Booking = () => {
         service: form.service,
         date: form.date.toISOString().split("T")[0],
         timeslot: form.timeSlot,
-        symptoms: form.description,
+        description: form.description,
       };
 
       const res = await createAppointment(payload);

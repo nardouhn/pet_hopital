@@ -165,7 +165,7 @@ export default function Navbar() {
                   <button
                     onClick={() => {
                       setOpen(false);
-                      navigate("/profile");
+                      navigate("/user/profile");
                     }}
                     className="w-full px-4 py-2 flex items-center gap-3 text-sm hover:bg-teal-50"
                   >
@@ -176,7 +176,7 @@ export default function Navbar() {
                   <button
                     onClick={() => {
                       setOpen(false);
-                      navigate("/appointments");
+                      navigate("/user/appointments");
                     }}
                     className="w-full px-4 py-2 flex items-center gap-3 text-sm hover:bg-teal-50"
                   >

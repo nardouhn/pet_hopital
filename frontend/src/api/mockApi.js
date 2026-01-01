@@ -155,7 +155,8 @@ export async function getUsers() {
 // Get current authenticated user's profile
 export async function getProfile() {
   try {
-    const res = await request("/api/users/me");
+    // Use standardized user route
+    const res = await request("/user/profile");
     // request() already returns parsed JSON (or null), for consistency return the user object
     return res?.data || res;
   } catch (err) {
@@ -166,7 +167,7 @@ export async function getProfile() {
 // Update profile (name/email)
 export async function updateProfile(payload) {
   try {
-    const res = await request('/api/users/me', { method: 'PUT', body: payload });
+    const res = await request('/user/profile', { method: 'PUT', body: payload });
     return res || {};
   } catch (err) {
     throw err;
@@ -176,7 +177,7 @@ export async function updateProfile(payload) {
 // Change password
 export async function changePassword(payload) {
   try {
-    const res = await request('/api/users/change-password', { method: 'PUT', body: payload });
+    const res = await request('/user/change-password', { method: 'PUT', body: payload });
     return res || {};
   } catch (err) {
     throw err;
@@ -334,7 +335,8 @@ export async function logout() {
 /* ===== APPOINTMENTS ===== */
 export async function createAppointment(payload) {
   try {
-    const res = await request("/appointment/create", { method: "POST", body: payload });
+    // Use standardized user-scoped endpoint
+    const res = await request("/user/appointments", { method: "POST", body: payload });
     return res?.data || res;
   } catch (err) {
     throw err;
@@ -343,7 +345,8 @@ export async function createAppointment(payload) {
 
 export async function getMyAppointments() {
   try {
-    const res = await request("/appointment/get");
+    // Use standardized user-scoped endpoint
+    const res = await request("/user/appointments");
     const rows = res?.data || res;
 
     // If backend returns empty array during development, provide a mocked dataset for UI testing
@@ -460,8 +463,8 @@ export async function deleteAppointment(appointmentId) {
 /* ===== PETS ===== */
 export async function createPet(payload) {
   try {
-    // Use the API-compatible users/pets endpoint so dev/prod use the same path
-    const res = await request("/api/users/pets", { method: 'POST', body: payload });
+    // Use standardized user route
+    const res = await request("/user/pets", { method: 'POST', body: payload });
     return res || {};
   } catch (err) {
     throw err;
@@ -470,7 +473,7 @@ export async function createPet(payload) {
 
 export async function getMyPets() {
   try {
-    const res = await request("/api/users/pets");
+    const res = await request("/user/pets");
     return res?.data || [];
   } catch (err) {
     return [];
@@ -497,7 +500,7 @@ export async function updatePet(petId, payload) {
 
 export async function deletePet(petId) {
   try {
-    const res = await request(`/pets/${petId}`, { method: 'DELETE' });
+    const res = await request(`/user/pets/${petId}`, { method: 'DELETE' });
     return res?.message || 'OK';
   } catch (err) {
     throw err;
