@@ -21,7 +21,11 @@ const Booking = () => {
 
   // Check auth once for UI gating (guests cannot book)
   let auth = null;
-  try { auth = JSON.parse(localStorage.getItem('auth')); } catch (e) { auth = null; }
+  try {
+    auth = JSON.parse(localStorage.getItem("auth"));
+  } catch (e) {
+    auth = null;
+  }
   const isAuthenticated = !!(auth && auth.isAuthenticated);
 
   const handleChange = (e) => {
@@ -69,21 +73,28 @@ const Booking = () => {
       // If backend returned updated user/pet info, sync into localStorage so profile shows new pet
       try {
         if (res && res.user) {
-          const authRaw = localStorage.getItem('auth');
+          const authRaw = localStorage.getItem("auth");
           const authObj = authRaw ? JSON.parse(authRaw) : {};
           const updatedAuth = {
             ...authObj,
             isAuthenticated: true,
             role: res.user.user_type || authObj.role,
             user: {
-              name: `${res.user.first_name || ''} ${res.user.last_name || ''}`.trim() || authObj?.user?.name,
+              name:
+                `${res.user.first_name || ""} ${
+                  res.user.last_name || ""
+                }`.trim() || authObj?.user?.name,
               email: res.user.email || authObj?.user?.email,
-              pets_count: res.user.pets_count ?? (res.user.pets ? res.user.pets.length : 0),
-              pets: res.user.pets || authObj?.user?.pets || []
-            }
+              pets_count:
+                res.user.pets_count ??
+                (res.user.pets ? res.user.pets.length : 0),
+              pets: res.user.pets || authObj?.user?.pets || [],
+            },
           };
-          localStorage.setItem('auth', JSON.stringify(updatedAuth));
-          try { window.dispatchEvent(new Event('authChanged')); } catch (e) {}
+          localStorage.setItem("auth", JSON.stringify(updatedAuth));
+          try {
+            window.dispatchEvent(new Event("authChanged"));
+          } catch (e) {}
         }
       } catch (e) {}
 
@@ -102,25 +113,24 @@ const Booking = () => {
       });
     } catch (err) {
       // Log detailed error for debugging
-      console.error('Appointment creation failed', err);
-      const msgLower = err && err.message ? err.message.toLowerCase() : '';
-      const message =
-        msgLower.includes('network error')
-          ? 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra kết nối hoặc thử lại.'
-          : (err && err.message) || 'Đặt lịch thất bại';
+      console.error("Appointment creation failed", err);
+      const msgLower = err && err.message ? err.message.toLowerCase() : "";
+      const message = msgLower.includes("network error")
+        ? "Không thể kết nối tới máy chủ. Vui lòng kiểm tra kết nối hoặc thử lại."
+        : (err && err.message) || "Đặt lịch thất bại";
       alert(message);
 
       // If auth-related, clear auth and redirect to login
       if (
-        msgLower.includes('please login') ||
-        msgLower.includes('session expired') ||
-        msgLower.includes('token') ||
-        msgLower.includes('unauthorized')
+        msgLower.includes("please login") ||
+        msgLower.includes("session expired") ||
+        msgLower.includes("token") ||
+        msgLower.includes("unauthorized")
       ) {
         try {
-          localStorage.removeItem('auth');
+          localStorage.removeItem("auth");
         } catch (e) {}
-        navigate('/login');
+        navigate("/login");
       }
     }
   };
@@ -147,10 +157,22 @@ const Booking = () => {
         {/* Form */}
         {!isAuthenticated ? (
           <div className="bg-white rounded-3xl shadow-lg p-8 md:p-10 border border-teal-100 text-center">
-            <p className="font-semibold text-gray-700 mb-4">Bạn cần đăng nhập để đặt lịch hẹn</p>
+            <p className="font-semibold text-gray-700 mb-4">
+              Bạn cần đăng nhập để đặt lịch hẹn
+            </p>
             <div className="flex gap-3 justify-center">
-              <button onClick={() => navigate('/login')} className="px-6 py-2 rounded-full bg-[#2e94a5] text-white hover:opacity-90 transition-opacity duration-200">Đăng nhập</button>
-              <button onClick={() => navigate('/signup')} className="px-6 py-2 rounded-full border border-[#2e94a5] text-[#2e94a5] hover:bg-[#2e94a5] hover:text-white transition-colors duration-200">Đăng ký</button>
+              <button
+                onClick={() => navigate("/login")}
+                className="px-6 py-2 rounded-full bg-[#2e94a5] text-white hover:opacity-90 transition-opacity duration-200"
+              >
+                Đăng nhập
+              </button>
+              <button
+                onClick={() => navigate("/signup")}
+                className="px-6 py-2 rounded-full border border-[#2e94a5] text-[#2e94a5] hover:bg-[#2e94a5] hover:text-white transition-colors duration-200"
+              >
+                Đăng ký
+              </button>
             </div>
           </div>
         ) : (
@@ -162,138 +184,138 @@ const Booking = () => {
             viewport={{ once: true }}
             className="bg-white rounded-3xl shadow-lg p-8 md:p-10 border border-teal-100"
           >
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Tên chủ */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tên chủ*
-              </label>
-              <input
-                type="text"
-                name="ownerName"
-                value={form.ownerName}
-                onChange={handleChange}
-                placeholder="Nguyễn Quốc"
-                className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
-                required
-              />
-            </div>
-
-            {/* Tên thú cưng */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tên thường gọi của thú cưng *
-              </label>
-              <input
-                type="text"
-                name="petName"
-                value={form.petName}
-                onChange={handleChange}
-                placeholder="Hiệu"
-                className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
-                required
-              />
-            </div>
-
-            {/* Loại thú */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Thú cưng nhà bạn là giống gì? *
-              </label>
-              <input
-                type="text"
-                name="petType"
-                value={form.petType}
-                onChange={handleChange}
-                placeholder="Chó, mèo,..."
-                className="w-full border border-gray-200 rounded-lg px-4 py-2 bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-300"
-                required
-              />
-            </div>
-
-            {/* Dịch vụ */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Dịch vụ bạn muốn làm *
-              </label>
-              <input
-                type="text"
-                name="service"
-                value={form.service}
-                onChange={handleChange}
-                placeholder="Khám sức khỏe, tiêm phòng..."
-                className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
-                required
-              />
-            </div>
-
-            {/* Lịch */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ngày thăm khám*
-              </label>
-              <div className="relative">
-                <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
-                <DatePicker
-                  selected={form.date}
-                  onChange={(date) => setForm({ ...form, date })}
-                  dateFormat="dd/MM/yyyy"
-                  placeholderText="Chọn ngày"
-                  className="w-full border border-gray-200 rounded-lg px-10 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
-                  minDate={new Date()}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Tên chủ */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tên chủ*
+                </label>
+                <input
+                  type="text"
+                  name="ownerName"
+                  value={form.ownerName}
+                  onChange={handleChange}
+                  placeholder="Nguyễn Quốc"
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
                   required
                 />
               </div>
+
+              {/* Tên thú cưng */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tên thường gọi của thú cưng *
+                </label>
+                <input
+                  type="text"
+                  name="petName"
+                  value={form.petName}
+                  onChange={handleChange}
+                  placeholder="Hiệu"
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                  required
+                />
+              </div>
+
+              {/* Loại thú */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Thú cưng nhà bạn là giống gì? *
+                </label>
+                <input
+                  type="text"
+                  name="petType"
+                  value={form.petType}
+                  onChange={handleChange}
+                  placeholder="Chó, mèo,..."
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                  required
+                />
+              </div>
+
+              {/* Dịch vụ */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Dịch vụ bạn muốn làm *
+                </label>
+                <input
+                  type="text"
+                  name="service"
+                  value={form.service}
+                  onChange={handleChange}
+                  placeholder="Khám sức khỏe, tiêm phòng..."
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                  required
+                />
+              </div>
+
+              {/* Lịch */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Ngày thăm khám*
+                </label>
+                <div className="relative">
+                  <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
+                  <DatePicker
+                    selected={form.date}
+                    onChange={(date) => setForm({ ...form, date })}
+                    dateFormat="dd/MM/yyyy"
+                    placeholderText="Chọn ngày"
+                    className="w-full border border-gray-200 rounded-lg px-10 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                    minDate={new Date()}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Khung giờ */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Khung thời gian thăm khám
+                </label>
+                <select
+                  name="timeSlot"
+                  value={form.timeSlot}
+                  onChange={handleChange}
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                >
+                  <option value="">Chọn khung giờ</option>
+                  <option>08:00 - 10:00</option>
+                  <option>10:00 - 12:00</option>
+                  <option>13:00 - 15:00</option>
+                  <option>15:00 - 17:00</option>
+                </select>
+              </div>
+
+              {/* Mô tả */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mô tả tình trạng của thú cưng
+                </label>
+                <textarea
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  placeholder="Mô tả ..."
+                  rows={3}
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                ></textarea>
+              </div>
             </div>
 
-            {/* Khung giờ */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Khung thời gian thăm khám
-              </label>
-              <select
-                name="timeSlot"
-                value={form.timeSlot}
-                onChange={handleChange}
-                className="w-full border border-gray-200 rounded-lg px-4 py-2 bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-300"
+            {/* Nút gửi */}
+            <div className="text-center mt-8">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.97 }}
+                type="submit"
+                className="bg-gradient-to-r from-teal-400 to-cyan-400 text-white font-semibold px-8 py-3 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-2 mx-auto"
               >
-                <option value="">Chọn khung giờ</option>
-                <option>08:00 - 10:00</option>
-                <option>10:00 - 12:00</option>
-                <option>13:00 - 15:00</option>
-                <option>15:00 - 17:00</option>
-              </select>
+                Đặt lịch hẹn ngay
+                <PawPrint className="w-5 h-5" />
+              </motion.button>
             </div>
-
-            {/* Mô tả */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mô tả tình trạng của thú cưng
-              </label>
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                placeholder="Mô tả ..."
-                rows={3}
-                className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-300"
-              ></textarea>
-            </div>
-          </div>
-
-          {/* Nút gửi */}
-          <div className="text-center mt-8">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
-              type="submit"
-              className="bg-gradient-to-r from-teal-400 to-cyan-400 text-white font-semibold px-8 py-3 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-2 mx-auto"
-            >
-              Đặt lịch hẹn ngay
-              <PawPrint className="w-5 h-5" />
-            </motion.button>
-          </div>
-        </motion.form>
+          </motion.form>
         )}
 
         {/* Modal xác nhận */}
