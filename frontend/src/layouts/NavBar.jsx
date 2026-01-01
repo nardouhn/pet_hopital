@@ -1,7 +1,7 @@
 import { PawPrint, User, LogOut, Calendar } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
-import { getProfile } from '@/api/mockApi';
+import { getProfile } from "@/api/mockApi";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -16,7 +16,8 @@ export default function Navbar() {
     }
   });
 
-  const isUser = auth?.isAuthenticated && ["user", "customer", "client"].includes(auth.role);
+  const isUser =
+    auth?.isAuthenticated && ["user", "customer", "client"].includes(auth.role);
 
   useEffect(() => {
     function onAuthChange() {
@@ -35,7 +36,8 @@ export default function Navbar() {
       try {
         const current = JSON.parse(localStorage.getItem("auth"));
         if (!current || !current.isAuthenticated) return;
-        const hasUserInfo = current.user && current.user.email && current.user.name;
+        const hasUserInfo =
+          current.user && current.user.email && current.user.name;
         if (hasUserInfo) return;
         // Use API helper to fetch profile (handles token attach)
         const u = await getProfile();
@@ -44,11 +46,14 @@ export default function Navbar() {
             ...current,
             role: u.user_type || current.role,
             user: {
-              name: `${u.first_name || u.firstName || ''} ${u.last_name || u.lastName || ''}`.trim() || current.user?.name,
+              name:
+                `${u.first_name || u.firstName || ""} ${
+                  u.last_name || u.lastName || ""
+                }`.trim() || current.user?.name,
               email: u.email || current.user?.email,
               pets_count: u.pets_count ?? (u.pets ? u.pets.length : 0),
-              pets: u.pets || current.user?.pets || []
-            }
+              pets: u.pets || current.user?.pets || [],
+            },
           };
           localStorage.setItem("auth", JSON.stringify(updatedAuth));
           setAuth(updatedAuth);
@@ -106,19 +111,23 @@ export default function Navbar() {
           <a href="/#services" className="hover:text-[#0891B2]">
             Services
           </a>
-          <button onClick={() => {
-            try {
-              const current = JSON.parse(localStorage.getItem('auth')) || null;
-              if (!current || !current.isAuthenticated) {
-                // guest -> redirect to login
-                return navigate('/login');
+          <button
+            onClick={() => {
+              try {
+                const current =
+                  JSON.parse(localStorage.getItem("auth")) || null;
+                if (!current || !current.isAuthenticated) {
+                  // guest -> redirect to login
+                  return navigate("/login");
+                }
+                window.location.href = "/#book";
+              } catch (e) {
+                return navigate("/login");
               }
-            } catch (e) {
-              return navigate('/login');
-            }
-            // authenticated users: go to homepage anchor
-            window.location.href = '/#book';
-          }} className="hover:text-[#0891B2]">
+              // authenticated users: go to homepage anchor
+            }}
+            className="hover:text-[#0891B2]"
+          >
             Book Now
           </button>
 
