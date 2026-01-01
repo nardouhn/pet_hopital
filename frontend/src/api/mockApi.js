@@ -2,7 +2,9 @@ const delay = (ms = 600) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Use a relative base by default in development so Vite's dev server can proxy API requests
 // when running inside Docker. Production builds can set VITE_API_BASE to an absolute URL.
-const BASE = import.meta.env.VITE_API_BASE ?? "";
+// Support runtime overrides via a global `window.__API_BASE__` or a <meta name="api-base" content="..."> tag
+const _runtimeBase = (typeof window !== 'undefined') ? (window.__API_BASE__ || document?.querySelector('meta[name="api-base"]')?.content) : null;
+const BASE = _runtimeBase ?? import.meta.env.VITE_API_BASE ?? "";
 
 async function request(path, { method = "GET", body, auth = true } = {}) {
   const headers = {};

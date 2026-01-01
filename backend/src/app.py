@@ -15,29 +15,40 @@ def create_flask_app(config_object=None):
 
     # CORS configuration (mirror Express allowedOrigins behavior)
     # Build a robust whitelist for development: include localhost and 127.0.0.1 variants
-    frontend = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+    # Read explicit frontend origin from env if provided (preferred for production)
+    frontend = os.environ.get('FRONTEND_URL', '')
 
-    allowed = [frontend, 'http://localhost:5173', 'http://127.0.0.1:5173']
+    # If a FRONTEND_URL is provided, build a conservative whitelist (keeps previous behavior)
+    if frontend:
+        allowed = [frontend, 'http://localhost:5173', 'http://127.0.0.1:5173']
+        # If FRONTEND_URL contains localhost, also add the 127.0.0.1 variant to be safe
+        try:
+            if 'localhost' in frontend:
+                allowed.append(frontend.replace('localhost', '127.0.0.1'))
+        except Exception:
+            pass
 
-    # If FRONTEND_URL contains localhost, also add the 127.0.0.1 variant to be safe
-    try:
-        if 'localhost' in frontend:
-            allowed.append(frontend.replace('localhost', '127.0.0.1'))
-    except Exception:
-        pass
+        # Deduplicate
+        allowed = list(dict.fromkeys(allowed))
 
-    # Deduplicate
-    allowed = list(dict.fromkeys(allowed))
+        # Use explicit whitelist to avoid passing a callable into flask-cors (older versions
+        # may not accept callables for origins matching).
+        CORS(app, origins=allowed, supports_credentials=True, allow_headers=['Content-Type', 'Authorization'])
 
-    # Use explicit whitelist to avoid passing a callable into flask-cors (older versions
-    # may not accept callables for origins matching).
-    CORS(app, origins=allowed, supports_credentials=True)
-
-    # Log allowed origins for easier debugging
-    try:
-        app.logger.info('CORS allowed origins: %s', ','.join(allowed))
-    except Exception:
-        pass
+        # Log allowed origins for easier debugging
+        try:
+            app.logger.info('CORS allowed origins: %s', ','.join(allowed))
+        except Exception:
+            pass
+    else:
+        # No FRONTEND_URL provided — be permissive and allow any http(s) origin using a regex.
+        # This makes deployed setups (where FRONTEND_URL was not explicitly set) work without
+        # needing a rebuild or extra env configuration.
+        CORS(app, origins=r'^https?://.*', supports_credentials=True, allow_headers=['Content-Type', 'Authorization'])
+        try:
+            app.logger.info('CORS allowed origins: regex ^https?://.* (permits any http/https origin)')
+        except Exception:
+            pass
 
     # Health check (already provided by factory but keep here for parity)
     @app.route('/health')
