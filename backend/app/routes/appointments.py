@@ -16,8 +16,10 @@ def create_appointment():
 
     from ..utils.validate import require_fields
     missing = require_fields(data, ['date'])
-    if not user_id or missing:
-        errs = {'missing': missing} if missing else None
+    if not user_id:
+        return jsonify({'message': 'Unauthorized'}), 401
+    if missing:
+        errs = {'missing': missing}
         return jsonify({'message': 'Missing fields', 'errors': errs}), 400
 
     # Validate date format (YYYY-MM-DD)
@@ -90,6 +92,9 @@ def create_appointment():
         db.session.commit()
     except Exception as e:
         db.session.rollback()
+        from flask import current_app
+        current_app.logger.exception('Failed to create appointment: %s', e)
+        current_app.logger.debug('Appointment data: %s', data)
         return jsonify({'message': 'Could not create appointment', 'error': str(e)}), 400
 
     user = User.query.get(user_id)
@@ -122,10 +127,26 @@ def get_my_appointments():
                 doc = slot.doctor_slot.doctor
                 d['doctor_name'] = getattr(doc, 'doctor_name', None)
 
-            # Do not inject a recent pet into every appointment (would duplicate pet name across rows).
-            # If appointments have an explicit pet association in the future, include it there.
+            # Ensure description is present under multiple convenient keys for frontend
+            desc = getattr(a, 'description', None)
+            if desc is not None:
+                d['description'] = desc
+                d['notes'] = d.get('notes') or desc
+            else:
+                # keep existing d['description'] if any, otherwise None
+                d.setdefault('description', None)
+                d.setdefault('notes', None)
 
-            # No service/description fields currently available in Appointment model; leave empty if not present.
+            # Expose pet_name for simpler frontend consumption
+            if d.get('pet') and isinstance(d.get('pet'), dict):
+                pet_obj = d['pet']
+                d['pet_name'] = pet_obj.get('name') or pet_obj.get('pet_name') or pet_obj.get('nickname')
+            else:
+                d.setdefault('pet_name', None)
+
+            # Ensure timeslot field exists consistently
+            d.setdefault('timeslot', getattr(a, 'timeslot', None) or d.get('timeslot'))
+
         except Exception:
             # Fail gracefully; don't block returning appointments
             pass

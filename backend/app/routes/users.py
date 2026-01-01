@@ -58,6 +58,13 @@ def get_profile():
     return jsonify({'data': user.to_dict()}), 200
 
 
+# Alias to support standardized frontend route: /user/profile
+@users_bp.route('/profile', methods=['GET'])
+@authenticator
+def get_profile_alias():
+    return get_profile()
+
+
 @users_bp.route('/me', methods=['PUT'])
 @authenticator
 def update_profile():
@@ -85,6 +92,13 @@ def update_profile():
 
     db.session.commit()
     return jsonify({'message': 'Profile updated', 'data': user.to_dict()}), 200
+
+
+# Alias to support standardized frontend route: PUT /user/profile
+@users_bp.route('/profile', methods=['PUT'])
+@authenticator
+def update_profile_alias():
+    return update_profile()
 
 
 @users_bp.route('/change-password', methods=['PUT'])
@@ -213,6 +227,23 @@ def get_my_pets():
     return jsonify({'data': [p.to_dict() for p in pets]}), 200
 
 
+# Alias route to provide full user-scoped appointments under /user/appointments
+@users_bp.route('/appointments', methods=['GET'])
+@authenticator
+def get_my_appointments_under_user():
+    # Import inside function to avoid circular import at module load
+    from .appointments import get_my_appointments as _get_my_appointments
+    return _get_my_appointments()
+
+
+# Alias for creating appointment under standardized user route: POST /user/appointments
+@users_bp.route('/appointments', methods=['POST'])
+def create_appointment_under_user():
+    # Call the existing appointment handler (it is decorated with authenticator and role checks)
+    from .appointments import create_appointment as _create_appointment
+    return _create_appointment()
+
+
 @users_bp.route('/pets', methods=['POST'])
 @authenticator
 def add_pet():
@@ -236,3 +267,23 @@ def add_pet():
 
     user = User.query.get(user_id)
     return jsonify({'message': 'Pet added', 'data': {'pet': pet.to_dict(), 'user': user.to_dict()}}), 201
+
+
+@users_bp.route('/pets/<int:pet_id>', methods=['DELETE'])
+@authenticator
+def delete_pet_user(pet_id):
+    """Allow a user to delete their own pet via /user/pets/<id>"""
+    user_id = getattr(g, 'user_id', None)
+    if not user_id:
+        return jsonify({'message': 'Unauthorized'}), 401
+    pet = Pet.query.get(pet_id)
+    if not pet:
+        return jsonify({'message': 'Not found'}), 404
+    # Allow owner or admin/superadmin
+    if pet.user_id != user_id:
+        current = User.query.get(user_id)
+        if not current or current.user_type not in ('admin','superadmin'):
+            return jsonify({'message': 'Forbidden'}), 403
+    db.session.delete(pet)
+    db.session.commit()
+    return jsonify({'message': 'Pet deleted'}), 200

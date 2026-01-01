@@ -64,19 +64,28 @@ export default function AppRoutes() {
     {
       element: <AuthGuard />,
       children: [
-        // Note: /profile and /appointments are *user-facing* authenticated routes.
-        // They were missing from the top-level route map, which caused the NavBar
-        // navigate('/profile') and navigate('/appointments') calls to hit the
-        // trailing wildcard and show the 404 page. Adding them here ensures they
-        // are protected by the same AuthGuard used for admin pages, and they do
-        // not conflict with /admin/* routes.
+        // Note: user routes standardized under /user/* (profile, appointments, pets)
+        // Keep legacy redirects for compatibility
         {
-          path: "/profile",
+          path: "/user/profile",
           element: <UserProfile />,
         },
         {
-          path: "/appointments",
+          path: "/user/appointments",
           element: <AppointmentPage />,
+        },
+        {
+          path: "/user/pets",
+          element: <Navigate to="/user/profile" replace />,
+        },
+        // Backwards-compatible redirects from old routes
+        {
+          path: "/profile",
+          element: <Navigate to="/user/profile" replace />,
+        },
+        {
+          path: "/appointments",
+          element: <Navigate to="/user/appointments" replace />,
         },
         {
           path: "/admin",

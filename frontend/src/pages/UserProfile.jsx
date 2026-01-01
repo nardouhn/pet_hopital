@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, PawPrint, Edit2, Plus, Heart, CheckCircle } from 'lucide-react';
 import Navbar from '@/layouts/NavBar';
 import Footer from '@/layouts/Footer';
-import { createPet, getProfile, updateProfile, changePassword } from '@/api/mockApi';
+import { createPet, getProfile, updateProfile, changePassword, deletePet } from '@/api/mockApi';
 
 const UserProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -337,9 +337,49 @@ const submitAddPet = async (e) => {
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 mb-4 font-medium italic">{pet.breed || '-'}</p>
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-gray-400">Breed:</span>
-                    <span className="text-gray-700 font-medium">{pet.breed || '-'}</span>
+                  <div className="flex justify-between items-center gap-2 text-[11px]">
+                    <div>
+                      <span className="text-gray-400">Breed:</span>
+                      <span className="text-gray-700 font-medium">{pet.breed || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Bạn có chắc muốn xoá thú cưng "${pet.name}"?`)) return;
+                          try {
+                            const res = await deletePet(pet.pet_id);
+                            // Optimistically update UI
+                            setUserData((prev) => {
+                              const prevPets = prev?.pets || [];
+                              const newPets = prevPets.filter((p) => p.pet_id !== pet.pet_id);
+                              const newCount = (prev?.pets_count || prevPets.length) - 1;
+                              const updated = { ...(prev || {}), pets: newPets, pets_count: newCount };
+                              try {
+                                const authRaw = localStorage.getItem('auth');
+                                const authObj = authRaw ? JSON.parse(authRaw) : {};
+                                const updatedAuth = {
+                                  ...authObj,
+                                  user: {
+                                    ...(authObj.user || {}),
+                                    pets_count: newCount,
+                                    pets: newPets
+                                  }
+                                };
+                                localStorage.setItem('auth', JSON.stringify(updatedAuth));
+                                try { window.dispatchEvent(new Event('authChanged')); } catch (e) {}
+                              } catch (e) {}
+                              return updated;
+                            });
+                            alert(res || 'Deleted');
+                          } catch (err) {
+                            alert(err?.message || 'Không thể xoá thú cưng');
+                          }
+                        }}
+                        className="text-sm text-red-600 hover:underline"
+                      >
+                        Xoá
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -79,6 +79,25 @@ class Pet(db.Model):
             "user_id": self.user_id
         }
 
+
+class PasswordResetOTP(db.Model):
+    __tablename__ = 'password_reset_otp'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
+    otp_hash = db.Column(db.String(255), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+
+    user = db.relationship('User', backref=db.backref('password_reset_otps', cascade='all, delete-orphan'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
 from sqlalchemy.dialects.postgresql import ENUM
 
 # Enum cho doctor_shift
