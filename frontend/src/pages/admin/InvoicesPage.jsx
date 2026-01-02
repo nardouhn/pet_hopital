@@ -171,13 +171,27 @@ export default function InvoicesPage() {
                 </div>
 
                 <div>
+                  <p className="text-xs text-gray-500 uppercase mb-1">Medicine</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {selectedInvoice.medicineName}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 uppercase mb-1">Service</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {selectedInvoice.services}
+                  </p>
+                </div>
+{/*             
+                <div>
                   <p className="text-xs text-gray-500 uppercase mb-1">
                     DUE DATE
                   </p>
                   <p className="text-sm font-medium text-gray-900">
                     {selectedInvoice.dueDate}
                   </p>
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -194,10 +208,10 @@ export default function InvoicesPage() {
                     {selectedInvoice.subtotal.toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
+                {/* <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Tax</span>
                   <span className="text-gray-900">{selectedInvoice.tax}</span>
-                </div>
+                </div> */}
                 <div className="border-t border-gray-200 pt-3 flex justify-between">
                   <span className="font-semibold text-gray-900">Total</span>
                   <span className="text-xl font-bold text-gray-900">
@@ -337,7 +351,7 @@ export default function InvoicesPage() {
           </div>
           <p className="text-sm text-gray-600 mb-2">Total Revenue</p>
           <p className="text-3xl font-bold text-gray-900">
-            ${totalRevenue.toLocaleString()}
+            {totalRevenue.toLocaleString()}đ 
           </p>
           <p className="text-xs text-gray-500 mt-1">+12% this month</p>
         </div>
@@ -351,7 +365,7 @@ export default function InvoicesPage() {
           </div>
           <p className="text-sm text-gray-600 mb-2">Paid</p>
           <p className="text-3xl font-bold text-gray-900">
-            ${paidAmount.toLocaleString()}
+            {paidAmount.toLocaleString()}đ
           </p>
           <p className="text-xs text-gray-500 mt-1">{paidCount} invoices</p>
         </div>
@@ -365,7 +379,7 @@ export default function InvoicesPage() {
           </div>
           <p className="text-sm text-gray-600 mb-2">Pending</p>
           <p className="text-3xl font-bold text-gray-900">
-            ${pendingAmount.toLocaleString()}
+            {pendingAmount.toLocaleString()}đ
           </p>
           <p className="text-xs text-gray-500 mt-1">{pendingCount} invoices</p>
         </div>
@@ -379,7 +393,7 @@ export default function InvoicesPage() {
           </div>
           <p className="text-sm text-gray-600 mb-2">Overdue</p>
           <p className="text-3xl font-bold text-gray-900">
-            ${overdueAmount.toLocaleString()}
+            {overdueAmount.toLocaleString()}đ
           </p>
           <p className="text-xs text-gray-500 mt-1">{overdueCount} invoices</p>
         </div>
@@ -492,13 +506,7 @@ export default function InvoicesPage() {
                   OWNER
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  SERVICE
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   AMOUNT
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  DATE
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   STATUS
@@ -512,7 +520,7 @@ export default function InvoicesPage() {
               {filteredInvoices.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="8"
+                    colSpan="6"
                     className="px-6 py-16 text-center text-gray-500"
                   >
                     No invoices found
@@ -540,18 +548,8 @@ export default function InvoicesPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">
-                        {invoice.service}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-medium text-gray-900">
-                        ${invoice.amount}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-600">
-                        {invoice.date}
+                        {invoice.amount}đ
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

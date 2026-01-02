@@ -17,6 +17,16 @@ export default function PetProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
+  
+  const formatDate = (value) => {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -207,7 +217,7 @@ export default function PetProfilePage() {
                     Last Visit Date
                   </label>
                   <p className="text-base font-medium text-gray-900 mt-1">
-                    {pet.lastVisit}
+                    {formatDate(pet.lastVisit)}
                   </p>
                 </div>
               </div>

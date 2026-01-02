@@ -31,9 +31,12 @@ export default function ServicesPage() {
   };
 
   const getTypeColor = (type) => {
-    return type === "Medication"
-      ? "bg-blue-100 text-blue-700"
-      : "bg-green-100 text-green-700";
+    if (!type) return "bg-gray-100 text-gray-700";
+    const t = String(type).toLowerCase();
+    if (t.includes('vaccine') || t.includes('vacxin') || t.includes('vac')) {
+      return "bg-pink-100 text-pink-700";
+    }
+    return t === "medication" || t === "medic" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700";
   };
 
   if (loading) {
@@ -64,9 +67,9 @@ export default function ServicesPage() {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-gray-900">Services</h2>
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            {/* <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
               View all
-            </button>
+            </button> */}
           </div>
 
           <div className="space-y-4">
@@ -79,7 +82,7 @@ export default function ServicesPage() {
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="font-medium text-gray-900">{service.name}</h3>
                   <span className="text-lg font-semibold text-gray-900">
-                    ${service.price}
+                    {service.price ? new Intl.NumberFormat('vi-VN').format(service.price) + ' đ' : '—'}
                   </span>
                 </div>
 
@@ -107,9 +110,9 @@ export default function ServicesPage() {
             <h2 className="text-lg font-semibold text-gray-900">
               Medications & Vaccines
             </h2>
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            {/* <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
               View all
-            </button>
+            </button> */}
           </div>
 
           <div className="space-y-4">
@@ -136,22 +139,27 @@ export default function ServicesPage() {
                       {medication.type}
                     </span>
                     <span className="text-sm text-gray-600">
-                      {medication.quantity} {medication.unit}
+                      {medication.quantity && medication.quantity > 0 ? (
+                        <>{medication.quantity} {medication.unit}</>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
                     </span>
                     <span className="text-sm text-gray-600">
-                      ${medication.pricePerUnit} /{" "}
-                      {medication.unit === "tablets" ? "tablet" : "dose"}
+                      {typeof medication.pricePerUnit === 'number' ? (
+                        new Intl.NumberFormat('vi-VN').format(medication.pricePerUnit)
+                      ) : medication.pricePerUnit} đ / {medication.unit === 'tablets' ? 'tablet' : 'dose'}
                     </span>
                   </div>
 
                   {/* Expiry or Next Order Date */}
-                  <div className="text-xs text-gray-500">
+                  {/* <div className="text-xs text-gray-500">
                     {medication.expiryDate ? (
                       <span>Exp: {medication.expiryDate}</span>
                     ) : (
                       <span>Next order: {medication.nextOrder}</span>
                     )}
-                  </div>
+                  </div> */}
                 </div>
               </div>
             ))}

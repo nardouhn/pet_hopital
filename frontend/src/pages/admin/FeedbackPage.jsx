@@ -22,19 +22,42 @@ export default function FeedbacksPage() {
         getFeedbackList(),
         getFeedbackStats()
       ]);
-      setFeedbackList(listData);
+      // Map backend shape to UI-friendly shape
+      const mapped = (listData || []).map(f => ({
+        id: f.feedback_id || f.id,
+        feedbackId: f.feedback_id || f.id,
+        userName: f.user_name || f.userName || f.email || 'Unknown',
+        petName: f.pet_name || f.petName || '-',
+        rating: Number(f.rating) || 0,
+        comment: f.content || f.comment || '',
+        status: f.status || 'Hidden',
+        createdAt: f.created_at || f.createdAt || null
+      }));
+      setFeedbackList(mapped);
       
-      // Use stats from API
+      // Map backend stats keys to UI keys
       setStats({
-        total: statsData.total || 0,
-        fiveStars: statsData.fiveStars || 0,
-        lowRating: statsData.lowRating || 0,
+        total: statsData.totalFeedback || statsData.total || 0,
+        fiveStars: statsData.ratingHigh || statsData.fiveStars || 0,
+        lowRating: statsData.ratingLow || statsData.lowRating || 0,
         satisfaction: statsData.satisfaction || 0
       });
     } catch (error) {
       console.error('Error loading feedback:', error);
       setFeedbackList([]);
       setStats({ total: 0, fiveStars: 0, lowRating: 0, satisfaction: 0 });
+    }
+  };
+
+  const toggleFeedbackStatus = async (feedbackId, currentStatus) => {
+    const newStatus = currentStatus === 'Show' ? 'Hidden' : 'Show';
+    try {
+      await updateFeedbackStatus(feedbackId, newStatus);
+      // Update local state
+      setFeedbackList((prev) => prev.map(f => f.feedbackId === feedbackId ? { ...f, status: newStatus } : f));
+    } catch (err) {
+      console.error('Failed to update feedback status', err);
+      window.alert('Cập nhật trạng thái thất bại: ' + (err.message || 'Lỗi máy chủ'));
     }
   };
 
@@ -53,7 +76,7 @@ export default function FeedbacksPage() {
         </button>
       )}
 
-      <div className="flex items-center justify-between mb-6">
+      {/* <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl text-gray-900 mb-1">
             {viewAll ? 'Toàn bộ feedback' : 'Feedback'}
@@ -68,7 +91,7 @@ export default function FeedbacksPage() {
             <span>Thêm</span>
           </button>
         )}
-      </div>
+      </div> */}
 
       {/* Stats Cards */}
       {!viewAll && (
@@ -115,29 +138,60 @@ export default function FeedbacksPage() {
         )}
       </div>
 
-      {/* Feedback Grid */}
-      <div className="grid grid-cols-3 gap-6">
-        {displayedFeedback.map((feedback) => (
-          <FeedbackCard key={feedback.id} feedback={feedback} />
-        ))}
-      </div>
+      {/* Feedback Grid or Table */}
+      {viewAll ? (
+        <div className="bg-white rounded-2xl p-4 border border-gray-100">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-xs text-gray-600 uppercase bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left">User</th>
+                  <th className="px-4 py-3 text-left">Content</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Created At</th>
+                  <th className="px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {feedbackList.map((fb) => (
+                  <tr key={fb.feedbackId} className="border-t">
+                    <td className="px-4 py-3">{fb.userName}</td>
+                    <td className="px-4 py-3 max-w-xl line-clamp-2">{fb.comment}</td>
+                    <td className="px-4 py-3 text-center">
+                      <button onClick={() => toggleFeedbackStatus(fb.feedbackId, fb.status)} className={`text-xs px-3 py-1 rounded-full ${fb.status === 'Show' ? 'bg-teal-100 text-teal-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                        {fb.status}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">{fb.createdAt ? new Date(fb.createdAt).toLocaleString() : '-'}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => toggleFeedbackStatus(fb.feedbackId, fb.status)} className="text-sm text-teal-600">Toggle</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-6">
+          {displayedFeedback.map((feedback) => (
+            <FeedbackCard key={feedback.id} feedback={feedback} onToggleStatus={toggleFeedbackStatus} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function FeedbackCard({ feedback }) {
+function FeedbackCard({ feedback, onToggleStatus }) {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-all">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="text-sm text-gray-900">{feedback.feedbackId}</div>
-        <div className={`text-xs px-3 py-1 rounded-full ${
-          feedback.status === 'Show' 
-            ? 'bg-teal-100 text-teal-700' 
-            : 'bg-yellow-100 text-yellow-700'
-        }`}>
+        <button onClick={() => onToggleStatus && onToggleStatus(feedback.feedbackId, feedback.status)} className={`text-xs px-3 py-1 rounded-full ${feedback.status === 'Show' ? 'bg-teal-100 text-teal-700' : 'bg-yellow-100 text-yellow-700'}`}>
           {feedback.status}
-        </div>
+        </button>
       </div>
 
       {/* Stars */}

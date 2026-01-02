@@ -826,12 +826,13 @@ export const api = {
       const res = await request('/admin/items/services');
       const data = res?.data || [];
       if (data.length === 0) return [];
+      // Ensure price is numeric and provide defaults
       return data.map(s => ({
         id: s.service_id,
         name: s.name,
-        price: s.price,
-        category: 'General',
-        duration: '-'
+        price: Number(s.price) || 0,
+        category: s.service_category || 'General',
+        duration: s.duration || '-'
       }));
     } catch (err) {
       console.error('api.getServices error', err);
@@ -844,12 +845,20 @@ export const api = {
       const res = await request('/admin/items/medicines');
       const data = res?.data || [];
       if (data.length === 0) return [];
-      return data.map(m => ({
-        id: m.medicine_id,
-        name: m.name,
-        price: m.price,
-        type: 'Medication'
-      }));
+      return data.map(m => {
+        const price = (m.price === null || m.price === undefined) ? 0 : Number(m.price);
+        return {
+          id: m.medicine_id,
+          name: m.name,
+          // expose pricePerUnit for UI compatibility
+          pricePerUnit: Number.isFinite(price) ? price : 0,
+          quantity: m.quantity || 0,
+          unit: m.unit || 'dose',
+          expiryDate: m.expiry_date || null,
+          nextOrder: m.next_order || null,
+          type: m.type || (/(vac|vaccine|vacxin)/i.test(m.name || '') ? 'Vaccine' : 'Medication')
+        };
+      });
     } catch (err) {
       console.error('api.getMedications error', err);
       return [];
@@ -950,18 +959,42 @@ export const api = {
 
   getMedicalRecordByReportId: async (reportId) => {
     try {
-      const res = await request(`/admin/patient_reports/download_report/${reportId}`, { auth: true });
-      const data = res?.data || res;
+      // Fetch the full list then find the report by id (some backends expose /list only)
+      const res = await request('/admin/patient_reports/list', { auth: true });
+      const list = res?.data || [];
+      const item = list.find(r => String(r.report_id || r.reportId) === String(reportId));
+      if (!item) return null;
+
+      const pet = item.pet || {};
+      const user = item.user || {};
+      const services = item.services || [];
+      const medicines = item.medicines || [];
+
       return {
-        petName: data.pet.name,
-        ownerName: data.user.user_name,
-        doctorName: data.doctor_name,
-        services: data.services,
-        medicines: data.medicines,
-        symptoms: data.symptoms,
-        diseases: data.diseases,
-        status: data.status,
-        reportDate: data.check_in
+        reportId: item.report_id || item.reportId,
+        serviceType: services[0] || 'Medical Service',
+        reportDate: item.check_in || item.check_in_iso || item.reportDate || null,
+        reportTime: item.check_in ? new Date(item.check_in).toLocaleTimeString() : (item.reportTime || ''),
+        petId: pet.pet_id || pet.petId,
+        petName: pet.name || '',
+        petSpecies: pet.species || '',
+        petBreed: pet.breed || '',
+        petAge: pet.age || '',
+        ownerId: user.user_id || user.userId,
+        ownerName: user.user_name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+        doctorName: item.doctor_name || '',
+        services: services,
+        medicines: medicines,
+        symptoms: Array.isArray(item.symptoms) ? item.symptoms : (item.symptoms || ''),
+        diseases: Array.isArray(item.diseases) ? item.diseases : (item.diseases || ''),
+        status: item.status || '',
+        images: (item.images || []).map(i => (i.image_url ? i.image_url : (typeof i === 'string' ? i : null))).filter(Boolean),
+        // fallback fields used in UI
+        treatmentDetails: services,
+        medicalHistory: medicines.map(m => (m.name ? m.name : '')),
+        dosage: item.dosage || '',
+        frequency: item.frequency || '',
+        medicalCondition: item.medicalCondition || ''
       };
     } catch (err) {
       console.error('api.getMedicalRecordByReportId error', err);
@@ -1112,8 +1145,41 @@ export async function getMedicalRecords() {
 
 export async function getMedicalRecordByReportId(reportId) {
   try {
-    const res = await request(`/admin/patient_reports/download_report/${reportId}`, { auth: true });
-    return res?.data || null;
+    const res = await request('/admin/patient_reports/list', { auth: true });
+    const list = res?.data || [];
+    const item = list.find(r => String(r.report_id || r.reportId) === String(reportId));
+    if (!item) return null;
+
+    const pet = item.pet || {};
+    const user = item.user || {};
+    const services = item.services || [];
+    const medicines = item.medicines || [];
+
+    return {
+      reportId: item.report_id || item.reportId,
+      serviceType: services[0] || 'Medical Service',
+      reportDate: item.check_in || item.check_in_iso || item.reportDate || null,
+      reportTime: item.check_in ? new Date(item.check_in).toLocaleTimeString() : (item.reportTime || ''),
+      petId: pet.pet_id || pet.petId,
+      petName: pet.name || '',
+      petSpecies: pet.species || '',
+      petBreed: pet.breed || '',
+      petAge: pet.age || '',
+      ownerId: user.user_id || user.userId,
+      ownerName: user.user_name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+      doctorName: item.doctor_name || '',
+      services: services,
+      medicines: medicines,
+      symptoms: Array.isArray(item.symptoms) ? item.symptoms : (item.symptoms || ''),
+      diseases: Array.isArray(item.diseases) ? item.diseases : (item.diseases || ''),
+      status: item.status || '',
+      images: (item.images || []).map(i => (i.image_url ? i.image_url : (typeof i === 'string' ? i : null))).filter(Boolean),
+      treatmentDetails: services,
+      medicalHistory: medicines.map(m => (m.name ? m.name : '')),
+      dosage: item.dosage || '',
+      frequency: item.frequency || '',
+      medicalCondition: item.medicalCondition || ''
+    };
   } catch (err) {
     console.error('getMedicalRecordByReportId (named) error', err);
     return null;
