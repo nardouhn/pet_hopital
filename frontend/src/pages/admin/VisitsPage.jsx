@@ -14,33 +14,62 @@ import { getAdminAppointments, getAppointmentsStats } from "@/api/mockApi";
 export default function VisitsPage() {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState("12-21-2025");
+  const [error, setError] = useState(null);
+  const defaultDate = new Date().toISOString().slice(0,10);
+  const [selectedDate, setSelectedDate] = useState(defaultDate);
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedService, setSelectedService] = useState("all");
   const [selectedDoctor, setSelectedDoctor] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
 
+  // normalize various backend date formats to YYYY-MM-DD
+  const toIsoDate = (raw) => {
+    if (!raw) return null;
+    try {
+      if (typeof raw === 'string') {
+        const m = raw.match(/^\s*(\d{4}-\d{2}-\d{2})/);
+        if (m) return m[1];
+      }
+      const dt = new Date(raw);
+      if (isNaN(dt.getTime())) return null;
+      return dt.toISOString().slice(0,10);
+    } catch (e) {
+      return null;
+    }
+  };
+
   useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    setError(null);
     const fetchData = async () => {
       try {
         const [visitsData, statsData] = await Promise.all([
           getAdminAppointments(),
           getAppointmentsStats()
         ]);
-        setVisits(visitsData);
+        if (!mounted) return;
+        setVisits(visitsData || []);
         // Use statsData if needed
-      } catch (error) {
-        console.error('Error fetching visits:', error);
+      } catch (err) {
+        console.error('Error fetching visits:', err);
+        if (!mounted) return;
         setVisits([]);
+        setError(err?.message || 'Lỗi khi tải lượt khám');
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
     fetchData();
+    return () => { mounted = false; };
   }, []);
 
   // Calculate stats for today
-  const todayVisits = visits.filter((v) => v.date === selectedDate);
+  const todayIso = selectedDate || new Date().toISOString().slice(0,10);
+  const todayVisits = visits.filter((v) => {
+    const iso = toIsoDate(v.date || v.booking_date || v.bookingDate);
+    return iso === todayIso;
+  });
   const waitingCount = todayVisits.filter((v) => v.status === "Chờ").length;
   const inProgressCount = todayVisits.filter(
     (v) => v.status === "Đang khám"
@@ -52,25 +81,16 @@ export default function VisitsPage() {
 
   // Apply filters
   const filteredVisits = visits.filter((visit) => {
-    const matchesDate = selectedDate === "all" || visit.date === selectedDate;
-    const matchesStatus =
-      selectedStatus === "all" || visit.status === selectedStatus;
-    const matchesService =
-      selectedService === "all" || visit.service === selectedService;
-    const matchesDoctor =
-      selectedDoctor === "all" || visit.doctor === selectedDoctor;
-    const matchesSearch =
-      searchTerm === "" ||
-      visit.petName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      visit.ownerName.toLowerCase().includes(searchTerm.toLowerCase());
+    const visitIso = toIsoDate(visit.date || visit.booking_date || visit.bookingDate);
+    const matchesDate = selectedDate === "all" || (visitIso && visitIso === selectedDate);
+    const matchesStatus = selectedStatus === "all" || visit.status === selectedStatus;
+    const matchesService = selectedService === "all" || visit.service === selectedService;
+    const matchesDoctor = selectedDoctor === "all" || visit.doctor === selectedDoctor;
+    const pet = (visit.petName || visit.pet_name || visit.pet || '').toString();
+    const owner = (visit.ownerName || visit.owner_name || visit.owner || '').toString();
+    const matchesSearch = searchTerm === "" || pet.toLowerCase().includes(searchTerm.toLowerCase()) || owner.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return (
-      matchesDate &&
-      matchesStatus &&
-      matchesService &&
-      matchesDoctor &&
-      matchesSearch
-    );
+    return matchesDate && matchesStatus && matchesService && matchesDoctor && matchesSearch;
   });
 
   const handleApplyFilter = () => {
@@ -79,7 +99,7 @@ export default function VisitsPage() {
   };
 
   const handleReset = () => {
-    setSelectedDate("12-21-2025");
+    setSelectedDate("");
     setSelectedStatus("all");
     setSelectedService("all");
     setSelectedDoctor("all");
@@ -172,11 +192,10 @@ export default function VisitsPage() {
           <div>
             <label className="block text-sm text-gray-600 mb-2">Date</label>
             <input
-              type="text"
+              type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-transparent"
-              placeholder="12-21-2025"
             />
           </div>
 
@@ -264,9 +283,13 @@ export default function VisitsPage() {
       {/* Visits Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Lượt khám hôm nay
-          </h2>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Lượt khám</h2>
+            <p className="text-sm text-gray-500">{selectedDate}</p>
+            {error && (
+              <div className="mt-2 text-sm text-red-600">{error}</div>
+            )}
+          </div>
           <button className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors">
             <Plus className="size-4" />
             Thêm lượt

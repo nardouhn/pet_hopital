@@ -56,10 +56,11 @@ async function request(path, { method = "GET", body, auth = true } = {}) {
 /* ===== DASHBOARD ===== */
 export async function getOverviewStats() {
   try {
-    const [statsRes, petsRes, usersRes] = await Promise.all([
+    const [statsRes, petsRes, usersRes, apptStatsRes] = await Promise.all([
       request("/admin/statistics", { auth: true }),
       request("/admin/overview/total-pets", { auth: true }),
       request("/admin/overview/total-users", { auth: true }),
+      request("/admin/appointments/stats", { auth: true }).catch(() => null),
     ]);
 
     const data = statsRes?.data || {};
@@ -67,7 +68,8 @@ export async function getOverviewStats() {
     // Prefer the dedicated endpoints' values, fall back to /admin/statistics if present
     const totalPets = petsRes?.data?.totalPets ?? data.totalPets ?? 0;
     const totalUsers = usersRes?.data?.totalUsers ?? data.totalUsers ?? 0;
-    const totalAppointments = data.totalAppointments ?? 0;
+    // Prefer today's total from /admin/appointments/stats when available
+    const totalAppointments = apptStatsRes?.data?.totalToday ?? data.totalAppointments ?? 0;
     const totalRevenue = data.totalRevenue ?? 0;
 
     return [
@@ -88,11 +90,49 @@ export async function getOverviewStats() {
   }
 }
 
+// Get pet hotel occupancy (current / total)
+export async function getPetHotelOccupancy() {
+  try {
+    const res = await request('/admin/overview/pet-hotel-occupancy', { auth: true });
+    const data = res?.data || res || {};
+    return {
+      current: data.current || 0,
+      total: data.total || 0,
+      ratio: data.ratio || `${data.current || 0}/${data.total || 0}`,
+    };
+  } catch (err) {
+    console.error('getPetHotelOccupancy error', err);
+    return { current: 0, total: 0, ratio: '0/0' };
+  }
+}
+
+// Get today's recent slots (returns { rows: [...], total_slots, new_pets } or legacy array)
+export async function getTodayRecentSlots() {
+  try {
+    const res = await request('/admin/overview/today-recent-slots', { auth: true });
+    // prefer data wrapper
+    const payload = res?.data ?? res;
+    if (Array.isArray(payload)) {
+      return { rows: payload, total_slots: payload.length, new_pets: payload.length };
+    }
+    return {
+      rows: payload?.rows || [],
+      total_slots: payload?.total_slots || 0,
+      new_pets: payload?.new_pets || 0,
+    };
+  } catch (err) {
+    console.error('getTodayRecentSlots error', err);
+    return { rows: [], total_slots: 0, new_pets: 0 };
+  }
+}
+
 export async function getRecentAppointments() {
   try {
     // Use overview endpoint for today's recent slots (returns slot/check_in, pet_name, user_name, services, status)
     const res = await request('/admin/overview/today-recent-slots', { auth: true });
-    const rows = res?.data || [];
+    // backward compatible: endpoint may return either array (old) or { rows: [...], ... }
+    const payload = res?.data ?? res;
+    const rows = Array.isArray(payload) ? payload : (payload?.rows || []);
 
     // Sort by check_in descending (latest first)
     rows.sort((a, b) => {
@@ -547,16 +587,18 @@ export async function getAdminAppointments() {
     const data = res?.data || [];
     if (data.length === 0) return [];
     return data.map(r => ({
-      appointment_id: r.appointment_id,
-      pet: { name: r.pet_name },
-      doctor: { doctor_name: r.doctor_name },
-      booking_date: r.booking_date,
-      timeslot: r.check_in ? new Date(r.check_in).toLocaleTimeString() : '',
-      user: {
-        first_name: r.user_name.split(' ')[0] || '',
-        last_name: r.user_name.split(' ')[1] || ''
-      },
-      status: r.status
+      id: r.appointment_id || r.slot_id || null,
+      appointment_id: r.appointment_id || null,
+      slotId: r.slot_id || null,
+      petName: r.pet_name || (r.pet && r.pet.name) || '-',
+      ownerName: r.user_name || (r.user && `${r.user.first_name || ''} ${r.user.last_name || ''}`.trim()) || '-',
+      date: r.booking_date || r.bookingDate || null,
+      time: r.check_in ? (new Date(r.check_in)).toLocaleString() : (r.timeslot || ''),
+      checkIn: r.check_in ? (new Date(r.check_in)).toLocaleString() : null,
+      checkOut: r.check_out ? (new Date(r.check_out)).toLocaleString() : null,
+      doctor: r.doctor_name || (r.doctor && r.doctor.doctor_name) || '-',
+      service: r.service || r.timeslot || 'General',
+      status: r.status || '-'
     }));
   } catch (err) {
     console.error('getAdminAppointments error', err);
@@ -892,6 +934,20 @@ export const api = {
     }
   },
 
+  getReportsStats: async () => {
+    try {
+      const res = await request('/admin/patient_reports/stats');
+      const data = res?.data || {};
+      return {
+        totalReports: data.totalReports || 0,
+        finishedReports: data.finishedReports || 0,
+      };
+    } catch (err) {
+      console.error('api.getReportsStats error', err);
+      return { totalReports: 0, finishedReports: 0 };
+    }
+  },
+
   getMedicalRecordByReportId: async (reportId) => {
     try {
       const res = await request(`/admin/patient_reports/download_report/${reportId}`, { auth: true });
@@ -935,6 +991,16 @@ export async function getTodayAppointments() {
   }
 }
 
+export async function getReportsStats() {
+  try {
+    const res = await request('/admin/patient_reports/stats', { auth: true });
+    return res?.data || { totalReports: 0, finishedReports: 0 };
+  } catch (err) {
+    console.error('getReportsStats error', err);
+    return { totalReports: 0, finishedReports: 0 };
+  }
+}
+
 export async function getAppointments(params) {
   try {
     const q = params ? `?${new URLSearchParams(params).toString()}` : '';
@@ -974,6 +1040,32 @@ export async function getPetById(petId) {
     return res?.data || null;
   } catch (err) {
     console.error('getPetById error', err);
+    return null;
+  }
+}
+
+// Fetch detailed pet payload and normalize to a UI-friendly shape
+export async function getPetDetail(petId) {
+  try {
+    const res = await request(`/admin/pets/${petId}`, { auth: true });
+    const payload = res?.data || res || null;
+    if (!payload) return null;
+
+    const pet = payload.pet || {};
+    const owner = payload.owner || {};
+    const lastVisit = payload.lastVisit || {};
+
+    return {
+      name: pet.name || '',
+      breed: pet.breed || '',
+      age: pet.age || '',
+      owner: owner.full_name || '',
+      ownerContact: owner.email || '',
+      assignedDoctor: lastVisit.doctorName || '',
+      lastVisit: lastVisit.time || null,
+    };
+  } catch (err) {
+    console.error('getPetDetail error', err);
     return null;
   }
 }

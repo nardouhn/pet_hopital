@@ -8,24 +8,58 @@ import {
   Calendar,
   PawPrint,
 } from "lucide-react";
-import { api } from "@/api/mockApi";
+import { getPetDetail } from "@/api/mockApi";
 
 export default function PetProfilePage() {
   const { petId } = useParams();
   const navigate = useNavigate();
   const [pet, setPet] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
-    api.getPetById(parseInt(petId)).then((data) => {
-      setPet(data);
-      setLoading(false);
-    });
+    let mounted = true;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getPetDetail(parseInt(petId));
+        if (!mounted) return;
+        setPet(data);
+      } catch (e) {
+        console.error('Failed to load pet detail', e);
+        if (!mounted) return;
+        setError(e?.message || "Lỗi khi tải dữ liệu");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      mounted = false;
+    };
   }, [petId]);
 
   if (loading) {
     return <div className="p-6">Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+          <div className="text-red-600">{error}</div>
+          <button
+            onClick={() => navigate("/admin/pets")}
+            className="mt-4 text-teal-600 hover:text-teal-700"
+          >
+            Back to pets list
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (!pet) {
@@ -47,18 +81,7 @@ export default function PetProfilePage() {
     );
   }
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Healthy":
-        return "bg-green-100 text-green-700";
-      case "Unhealthy":
-        return "bg-red-100 text-red-700";
-      case "Warning":
-        return "bg-yellow-100 text-yellow-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
+  // Note: `species` and `status` intentionally omitted per requirements
 
   return (
     <div className="p-6 space-y-6 bg-[#f8fafb] min-h-screen">
@@ -99,12 +122,7 @@ export default function PetProfilePage() {
                 {pet.name}
               </p>
             </div>
-            <div>
-              <label className="text-sm text-gray-500">Species</label>
-              <p className="text-base font-medium text-gray-900 mt-1">
-                {pet.species}
-              </p>
-            </div>
+            {/* Species removed intentionally */}
             <div>
               <label className="text-sm text-gray-500">Breed</label>
               <p className="text-base font-medium text-gray-900 mt-1">
@@ -117,24 +135,8 @@ export default function PetProfilePage() {
                 {pet.age}
               </p>
             </div>
-            <div>
-              <label className="text-sm text-gray-500">Gender</label>
-              <p className="text-base font-medium text-gray-900 mt-1">
-                {pet.gender}
-              </p>
-            </div>
-            <div>
-              <label className="text-sm text-gray-500">Health Status</label>
-              <div className="mt-1">
-                <span
-                  className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                    pet.status
-                  )}`}
-                >
-                  {pet.status}
-                </span>
-              </div>
-            </div>
+            
+            {/* Health status removed intentionally */}
           </div>
         </div>
 
@@ -210,124 +212,14 @@ export default function PetProfilePage() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-gray-100 rounded-lg">
-                  <Stethoscope className="size-5 text-gray-600" />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-500">
-                    Current Status
-                  </label>
-                  <div className="mt-1">
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                        pet.status
-                      )}`}
-                    >
-                      {pet.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              {/* Current status removed intentionally */}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tabs Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {/* Tab Headers */}
-        <div className="border-b border-gray-200">
-          <div className="flex">
-            <button
-              onClick={() => setActiveTab("overview")}
-              className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-                activeTab === "overview"
-                  ? "border-teal-500 text-teal-600"
-                  : "border-transparent text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab("medical-history")}
-              className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-                activeTab === "medical-history"
-                  ? "border-teal-500 text-teal-600"
-                  : "border-transparent text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Medical History
-            </button>
-            <button
-              onClick={() => setActiveTab("vaccination")}
-              className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-                activeTab === "vaccination"
-                  ? "border-teal-500 text-teal-600"
-                  : "border-transparent text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Vaccination
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <div className="p-6">
-          {activeTab === "overview" && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm text-gray-500">Pet Name</label>
-                  <p className="text-base text-gray-900 mt-1">{pet.name}</p>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-500">Species</label>
-                  <p className="text-base text-gray-900 mt-1">{pet.species}</p>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-500">Breed</label>
-                  <p className="text-base text-gray-900 mt-1">{pet.breed}</p>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-500">Age</label>
-                  <p className="text-base text-gray-900 mt-1">{pet.age}</p>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-500">Owner</label>
-                  <p className="text-base text-gray-900 mt-1">{pet.owner}</p>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-500">Health Status</label>
-                  <div className="mt-1">
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                        pet.status
-                      )}`}
-                    >
-                      {pet.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "medical-history" && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No medical history available yet.</p>
-            </div>
-          )}
-
-          {activeTab === "vaccination" && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">
-                No vaccination records available yet.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+      
+      
     </div>
   );
 }

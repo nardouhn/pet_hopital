@@ -1,20 +1,30 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Filter, Plus, PawPrint } from "lucide-react";
-import { getAdminPets } from "@/api/mockApi";
+import { getAdminPets, getPetStats } from "@/api/mockApi";
 
 export default function PetsPage() {
   const navigate = useNavigate();
   const [pets, setPets] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpecies, setSelectedSpecies] = useState("all");
+  const [stats, setStats] = useState({ total: 0, dogs: 0, cats: 0, others: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getAdminPets();
+        const [data, rawStats] = await Promise.all([getAdminPets(), getPetStats()]);
         setPets(data);
+
+        // Normalize stats shape
+        const s = rawStats?.data ?? rawStats ?? {};
+        const total = Number(s.totalPets ?? s.total ?? s.totalPets ?? 0);
+        const dogs = Number(s.dogs ?? s.Dog ?? s.DogCount ?? 0);
+        const cats = Number(s.cats ?? s.Cat ?? s.CatCount ?? 0);
+        let others = Number(s.others ?? s.Others ?? 0);
+        if (!others) others = Math.max(0, total - dogs - cats);
+        setStats({ total, dogs, cats, others });
       } catch (error) {
         console.error('Error fetching pets:', error);
         setPets([]);
@@ -25,25 +35,33 @@ export default function PetsPage() {
     fetchData();
   }, []);
 
-  // Get species counts
+  // Use backend stats when available; fall back to client counts
   const speciesCounts = {
-    all: pets.length,
-    Dog: pets.filter((p) => p.species === "Dog").length,
-    Cat: pets.filter((p) => p.species === "Cat").length,
-    Rabbit: pets.filter((p) => p.species === "Rabbit").length,
-    Bird: pets.filter((p) => p.species === "Bird").length,
+    all: stats.total || pets.length,
+    Dog: stats.dogs || pets.filter((p) => (p.breed || p.species || '').toString().toLowerCase().includes('chó') || (p.species || '').toString().toLowerCase().includes('dog')).length,
+    Cat: stats.cats || pets.filter((p) => (p.breed || p.species || '').toString().toLowerCase().includes('mèo') || (p.species || '').toString().toLowerCase().includes('cat')).length,
+    Others: stats.others || Math.max(0, pets.length - (pets.filter((p) => ((p.breed||'').toString().toLowerCase().includes('chó') || (p.species||'').toString().toLowerCase().includes('dog')).length) - 0) - (pets.filter((p) => ((p.breed||'').toString().toLowerCase().includes('mèo') || (p.species||'').toString().toLowerCase().includes('cat')).length))),
   };
 
   // Filter pets
   const filteredPets = pets.filter((pet) => {
     const matchesSearch =
       searchQuery === "" ||
-      pet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      pet.breed.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      pet.owner.toLowerCase().includes(searchQuery.toLowerCase());
+      (pet.name || '').toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (pet.breed || '').toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (pet.owner || '').toString().toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesSpecies =
-      selectedSpecies === "all" || pet.species === selectedSpecies;
+    const breed = (pet.breed || '').toString().toLowerCase();
+    const speciesField = (pet.species || '').toString().toLowerCase();
+
+    const isDog = breed.includes('chó') || speciesField.includes('dog');
+    const isCat = breed.includes('mèo') || speciesField.includes('cat');
+
+    let matchesSpecies = false;
+    if (selectedSpecies === 'all') matchesSpecies = true;
+    else if (selectedSpecies === 'Dog') matchesSpecies = isDog;
+    else if (selectedSpecies === 'Cat') matchesSpecies = isCat;
+    else if (selectedSpecies === 'Others') matchesSpecies = !isDog && !isCat;
 
     return matchesSearch && matchesSpecies;
   });
@@ -105,18 +123,11 @@ export default function PetsPage() {
           icon="🐈"
         />
         <FilterTab
-          label="Thỏ"
-          count={speciesCounts.Rabbit || 0}
-          isActive={selectedSpecies === "Rabbit"}
-          onClick={() => setSelectedSpecies("Rabbit")}
-          icon="🐰"
-        />
-        <FilterTab
-          label="Chim"
-          count={speciesCounts.Bird || 0}
-          isActive={selectedSpecies === "Bird"}
-          onClick={() => setSelectedSpecies("Bird")}
-          icon="🐦"
+          label="Khác"
+          count={speciesCounts.Others}
+          isActive={selectedSpecies === "Others"}
+          onClick={() => setSelectedSpecies("Others")}
+          icon="⚪"
         />
       </div>
 
@@ -175,12 +186,7 @@ export default function PetsPage() {
 
               {/* Pet Details */}
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Species:</span>
-                  <span className="text-gray-900 font-medium">
-                    {pet.species}
-                  </span>
-                </div>
+                
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Age:</span>
                   <span className="text-gray-900">{pet.age}</span>
@@ -191,25 +197,10 @@ export default function PetsPage() {
                     {pet.owner}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Gender:</span>
-                  <span className="text-gray-900">{pet.gender}</span>
-                </div>
+                
               </div>
 
-              {/* Status and Last Visit */}
-              <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-                <span
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                    pet.status
-                  )}`}
-                >
-                  {pet.status}
-                </span>
-                <span className="text-xs text-gray-500">
-                  Last Visit: {pet.lastVisit}
-                </span>
-              </div>
+              
             </div>
           ))}
         </div>

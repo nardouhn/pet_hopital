@@ -7,7 +7,42 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { getAdminDoctors } from "@/api/mockApi";
+import { getAdminDoctors, getDoctorsSchedule } from "@/api/mockApi";
+
+// Shared shift legend and helpers (module-level) so list & schedule use identical mapping/colors
+const SHIFTS = [
+  { id: 1, label: "Shift 1: Morning Shift", color: "bg-teal-200" },
+  { id: 2, label: "Shift 2: Afternoon Shift", color: "bg-gray-300" },
+  { id: 3, label: "Shift 3: Evening Shift", color: "bg-gray-400" },
+  { id: 4, label: "Shift 4: Night Shift", color: "bg-yellow-200" },
+  { id: 5, label: "Shift 5: Weekend Shift", color: "bg-green-200" },
+  { id: 6, label: "Shift 6: Emergency Shift", color: "bg-blue-200" },
+];
+
+const getShiftColor = (shiftId) => {
+  const s = SHIFTS.find((x) => String(x.id) === String(shiftId));
+  return s ? s.color : "bg-gray-100";
+};
+
+const getShiftLabel = (shiftId) => {
+  const s = SHIFTS.find((x) => String(x.id) === String(shiftId));
+  return s ? s.label : String(shiftId);
+};
+
+// Map backend shift string (e.g. '9-12') or numeric to legend id
+const mapShiftValueToLegend = (val) => {
+  if (!val && val !== 0) return null;
+  const v = String(val).trim();
+  if (!v) return null;
+  if (v.toUpperCase() === 'NONE') return null;
+  const l = v.toLowerCase();
+  if (['9-12', '9-13'].includes(l)) return 1;
+  if (['12-18', '13-18'].includes(l)) return 2;
+  if (['9-17', '10-18'].includes(l)) return 3;
+  const asNum = Number(v);
+  if (Number.isFinite(asNum) && asNum >= 1 && asNum <= 6) return asNum;
+  return null;
+};
 
 export default function DoctorsPage() {
   const [doctors, setDoctors] = useState([]);
@@ -18,8 +53,29 @@ export default function DoctorsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getAdminDoctors();
-        setDoctors(data);
+        const [data, scheduleRows] = await Promise.all([getAdminDoctors(), getDoctorsSchedule()]);
+
+        // build monthlySchedule map per doctor: { doctorName: { dayNumber: shift } }
+        const scheduleMap = {};
+        (scheduleRows || []).forEach((r) => {
+          const name = r.doctor_name || r.doctorName || r.doctor || '';
+          let dayNum = null;
+          try {
+            dayNum = new Date(r.slot_date).getDate();
+          } catch (e) {
+            dayNum = null;
+          }
+          if (!name) return;
+          if (!scheduleMap[name]) scheduleMap[name] = {};
+          if (dayNum) scheduleMap[name][dayNum] = r.shift;
+        });
+
+        // merge scheduleMap into doctors as monthlySchedule
+        const merged = (data || []).map(d => ({
+          ...d,
+          monthlySchedule: scheduleMap[d.name] || d.monthlySchedule || {}
+        }));
+        setDoctors(merged);
       } catch (error) {
         console.error('Error fetching doctors:', error);
         setDoctors([]);
@@ -52,6 +108,68 @@ export default function DoctorsPage() {
       month: "long",
       year: "numeric",
     });
+  };
+
+  // Shift legend and colors are defined at module scope: `SHIFTS`, `getShiftColor`, `getShiftLabel`
+
+  // List view: render weekday names (Monday, Tuesday, ...) for the doctor's schedule
+  // No colors or shift details here per UI requirement.
+  const renderScheduleWeekdays = (doctor) => {
+    const ms = doctor.monthlySchedule || {};
+    // Only consider days where the shift maps to a legend (skip 'NONE' and unknown values)
+    const dayNums = Object.entries(ms)
+      .filter(([k, v]) => mapShiftValueToLegend(v) !== null)
+      .map(([k]) => Number(k))
+      .filter((n) => Number.isFinite(n));
+
+    // Fallback: if monthlySchedule empty, try doctor.schedule entries with slot_date and valid shift
+    if (dayNums.length === 0 && Array.isArray(doctor.schedule)) {
+      const fallbackDays = doctor.schedule
+        .map((s) => {
+          if (!s) return null;
+          // determine shift value and date fields if present
+          const shiftVal = s.shift ?? s.shift_time ?? s.shiftTime ?? s;
+          if (mapShiftValueToLegend(shiftVal) === null) return null;
+          const dateStr = s.slot_date ?? s.slotDate ?? s.date ?? null;
+          if (!dateStr) return null;
+          const dt = new Date(dateStr);
+          return Number.isFinite(dt.getDate()) ? dt.getDate() : null;
+        })
+        .filter((n) => Number.isFinite(n));
+
+      if (fallbackDays.length) {
+        const uniqFd = Array.from(new Set(fallbackDays));
+        const weekdays = uniqFd.map((d) => {
+          const dt = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), d);
+          return dt.toLocaleDateString('en-US', { weekday: 'long' });
+        });
+        return (
+          <div className="flex gap-2 flex-wrap">
+            {weekdays.map((w) => (
+              <span key={w} className="text-sm text-gray-700">{w}</span>
+            ))}
+          </div>
+        );
+      }
+    }
+
+    if (dayNums.length === 0) {
+      return <span className="text-sm text-gray-500">-</span>;
+    }
+
+    const uniq = Array.from(new Set(dayNums));
+    const weekdays = uniq.map((d) => {
+      const dt = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), d);
+      return dt.toLocaleDateString('en-US', { weekday: 'long' });
+    });
+
+    return (
+      <div className="flex gap-2 flex-wrap">
+        {weekdays.map((w) => (
+          <span key={w} className="text-sm text-gray-700">{w}</span>
+        ))}
+      </div>
+    );
   };
 
   // Schedule View
@@ -163,16 +281,7 @@ export default function DoctorsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex gap-1">
-                        {doctor.schedule.map((day, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded"
-                          >
-                            {day}
-                          </span>
-                        ))}
-                      </div>
+                      {renderScheduleWeekdays(doctor)}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
@@ -206,19 +315,7 @@ function ScheduleView({
   // Days to show in calendar (2-17)
   const days = Array.from({ length: 16 }, (_, i) => i + 2);
 
-  const shifts = [
-    { id: 1, label: "Shift 1: Morning Shift", color: "bg-teal-200" },
-    { id: 2, label: "Shift 2: Afternoon Shift", color: "bg-gray-300" },
-    { id: 3, label: "Shift 3: Evening Shift", color: "bg-gray-400" },
-    { id: 4, label: "Shift 4: Night Shift", color: "bg-yellow-200" },
-    { id: 5, label: "Shift 5: Weekend Shift", color: "bg-green-200" },
-    { id: 6, label: "Shift 6: Emergency Shift", color: "bg-blue-200" },
-  ];
-
-  const getShiftColor = (shiftId) => {
-    const shift = shifts.find((s) => s.id === shiftId);
-    return shift ? shift.color : "bg-gray-100";
-  };
+  // Use shared `SHIFTS`, `getShiftColor`, `getShiftLabel` from module scope
 
   return (
     <div className="p-6 space-y-6 bg-[#f8fafb] min-h-screen">
@@ -266,7 +363,7 @@ function ScheduleView({
           Shift Legend
         </h3>
         <div className="flex flex-wrap gap-4">
-          {shifts.map((shift) => (
+          {SHIFTS.map((shift) => (
             <div key={shift.id} className="flex items-center gap-2">
               <div className={`size-4 rounded ${shift.color}`}></div>
               <span className="text-sm text-gray-600">{shift.label}</span>
@@ -330,21 +427,20 @@ function ScheduleView({
                       </div>
                     </td>
                     {days.map((day) => {
-                      const shiftId = doctor.monthlySchedule?.[day];
+                      const rawShift = doctor.monthlySchedule?.[day];
+                      const legendId = mapShiftValueToLegend(rawShift);
                       return (
                         <td key={day} className="px-3 py-3">
                           <div className="flex justify-center">
-                            {shiftId ? (
+                            {legendId ? (
                               <div
                                 className={`${getShiftColor(
-                                  shiftId
+                                  legendId
                                 )} size-8 rounded flex items-center justify-center`}
-                                title={
-                                  shifts.find((s) => s.id === shiftId)?.label
-                                }
+                                title={getShiftLabel(legendId)}
                               >
                                 <span className="text-xs font-semibold text-gray-700">
-                                  {shiftId}
+                                  {getShiftLabel(legendId).split(':')[0].replace('Shift ', '')}
                                 </span>
                               </div>
                             ) : (

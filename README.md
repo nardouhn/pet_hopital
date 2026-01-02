@@ -11,6 +11,7 @@ Mở Docker Desktop
 Mở VS Code và chạy trong Terminal:
 
 # Chạy thêm nếu lần đầu:
+cat triggers.sql | docker compose exec -T db psql -U postgres -d vet_clinic 
 
 (powershell) docker exec backend_flask_app python /app/scripts/seed_defaults.py
 

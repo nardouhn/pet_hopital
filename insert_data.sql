@@ -116,15 +116,15 @@ SELECT
     END AS shift
 FROM doctor d
 CROSS JOIN (
-    SELECT ('2025-12-07'::date + n) AS slot_date
-    FROM generate_series(0, 30) AS n
+    SELECT ('2026-01-02'::date + n) AS slot_date
+    FROM generate_series(0, 13) AS n
 ) dates
 ORDER BY d.doctor_id, dates.slot_date;
 
 
 INSERT INTO appointment (booking_date, status, user_id)
 SELECT
-    ('2025-12-07'::date + (floor(random() * 32)::int) * INTERVAL '1 day')::date AS booking_date,
+    ('2026-01-02'::date + (floor(random() * 14)::int) * INTERVAL '1 day')::date AS booking_date,
     'Đang chờ xác nhận'::appointment_status_enum AS status,
     u.user_id
 FROM users u
@@ -772,8 +772,8 @@ SELECT
         WHEN random() < 0.85 THEN 'Thú cưng của tôi hồi phục rất nhanh sau điều trị, cảm ơn bệnh viện.'
         ELSE 'Trải nghiệm rất hài lòng, sẽ tiếp tục quay lại khi cần.'
     END AS content,
-    timestamp '2025-12-07'
-        + interval '1 day' * floor(random() * 31)
+    timestamp '2026-01-02'
+        + interval '1 day' * floor(random() * 14)
         + interval '1 hour' * floor(random() * 24)
         + interval '1 minute' * floor(random() * 60) AS created_at,
     p.name AS pet_name
@@ -799,10 +799,13 @@ INSERT INTO pet_hotel (
 )
 SELECT
     p.pet_id,
-    -- check_in: ngẫu nhiên trong 07/12/2025 → 01/01/2026
+    -- check_in: ngẫu nhiên trong 2026-01-02 → 2026-01-15
     check_in_time,
-    -- check_out: sau check_in từ 2–10 ngày
-    check_in_time + interval '1 day' * stay_days,
+    -- check_out: sau check_in từ 1–3 ngày; một số trường hợp để NULL (đang ở)
+    CASE
+        WHEN random() < 0.3 THEN NULL
+        ELSE LEAST(check_in_time + interval '1 day' * stay_days, '2026-01-15'::timestamp + interval '23:59:59')
+    END AS check_out,
     -- notes dịch vụ trông giữ thú cưng
     CASE
         WHEN random() < 0.15 THEN 'Thú cưng hiền, quen chuồng, ăn uống bình thường.'
@@ -816,11 +819,11 @@ SELECT
 FROM (
     SELECT
         p.pet_id,
-        '2025-12-07'::timestamp
-        + interval '1 day' * floor(random() * 26)
+        '2026-01-02'::timestamp
+        + interval '1 day' * floor(random() * 14)
         + interval '1 hour' * floor(random() * 24)
         + interval '1 minute' * floor(random() * 60) AS check_in_time,
-        floor(2 + random() * 9)::int AS stay_days
+        floor(1 + random() * 3)::int AS stay_days
     FROM pets p
 ) AS p
 LIMIT 60;

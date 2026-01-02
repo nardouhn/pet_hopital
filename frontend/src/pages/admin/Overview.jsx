@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Users, Calendar, DollarSign, TrendingUp } from "lucide-react";
-import { getOverviewStats, getRecentAppointments } from "@/api/mockApi";
+import { getOverviewStats, getRecentAppointments, getPetHotelOccupancy, getTodayRecentSlots } from "@/api/mockApi";
 
 export default function Overview() {
   const [stats, setStats] = useState([]);
@@ -29,6 +29,14 @@ export default function Overview() {
           setQuickStats(q => ({ ...q, totalPets }));
         } catch (e) {
           // ignore
+        }
+        // fetch pet hotel occupancy and today's recent slots to populate quick stats
+        try {
+          const [hotel, today] = await Promise.all([getPetHotelOccupancy(), getTodayRecentSlots()]);
+          const newPatients = (today && typeof today.new_pets === 'number') ? today.new_pets : (today?.rows?.length || 0);
+          setQuickStats(q => ({ ...q, petHotelGuests: hotel.current || 0, newPatientsToday: newPatients }));
+        } catch (e) {
+          // ignore occupancy/today errors
         }
       } catch (error) {
         console.error('Error fetching overview data:', error);
@@ -68,9 +76,9 @@ export default function Overview() {
           <p className="text-sm text-gray-500 mt-1">Tổng quan phòng khám...</p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-gray-500">
+          {/* <p className="text-sm text-gray-500">
             Today: Thứ 3 ngày 18 tháng 12 năm 2025
-          </p>
+          </p> */}
         </div>
       </div>
 

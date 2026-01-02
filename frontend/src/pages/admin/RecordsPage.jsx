@@ -16,6 +16,7 @@ import { api } from "@/api/mockApi";
 export default function RecordsPage() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ totalReports: 0, finishedReports: 0 });
   const [view, setView] = useState("overview"); // 'overview', 'all', 'detail'
   const [selectedReportId, setSelectedReportId] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -28,10 +29,16 @@ export default function RecordsPage() {
   const [doctorFilter, setDoctorFilter] = useState("all");
 
   useEffect(() => {
-    api.getMedicalRecords().then((data) => {
-      setRecords(data);
-      setLoading(false);
-    });
+    setLoading(true);
+    Promise.all([api.getMedicalRecords(), api.getReportsStats()])
+      .then(([recordsData, statsData]) => {
+        setRecords(recordsData || []);
+        setStats(statsData || { totalReports: 0, finishedReports: 0 });
+      })
+      .catch((err) => {
+        console.error('RecordsPage init error', err);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -43,15 +50,13 @@ export default function RecordsPage() {
   }, [selectedReportId]);
 
   // Calculate stats
-  const totalRecords = records.length;
+  const totalRecords = stats.totalReports || records.length;
   const recordsThisMonth = records.filter((r) => {
     const recordMonth = new Date(r.reportDate).getMonth();
     const currentMonth = new Date().getMonth();
     return recordMonth === currentMonth;
   }).length;
-  const pendingRecords = records.filter(
-    (r) => r.status === "Đang chờ" || r.status === "Đang khám"
-  ).length;
+  const pendingRecords = Math.max(0, (stats.totalReports || 0) - (stats.finishedReports || 0));
 
   // Filter records
   const filteredRecords = records.filter((record) => {

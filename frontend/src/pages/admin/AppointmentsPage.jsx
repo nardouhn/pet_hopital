@@ -12,10 +12,11 @@ import { getAdminAppointments } from "@/api/mockApi";
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState("12-21-2025");
+  const defaultDate = new Date().toISOString().slice(0,10);
+  const [selectedDate, setSelectedDate] = useState(defaultDate);
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedService, setSelectedService] = useState("all");
-  const [appointmentDate, setAppointmentDate] = useState("12-21-2025");
+  const [appointmentDate, setAppointmentDate] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,10 +33,30 @@ export default function AppointmentsPage() {
     fetchData();
   }, []);
 
-  // Calculate stats
-  const todayAppointments = appointments.filter((a) => a.date === "12-21-2025");
+  // Normalize various backend date formats to YYYY-MM-DD
+  const toIsoDate = (raw) => {
+    if (!raw) return null;
+    try {
+      if (typeof raw === 'string') {
+        const m = raw.match(/^\s*(\d{4}-\d{2}-\d{2})/);
+        if (m) return m[1];
+      }
+      const dt = new Date(raw);
+      if (isNaN(dt.getTime())) return null;
+      return dt.toISOString().slice(0,10);
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // Calculate stats (based on selectedDate)
+  const todayIso = selectedDate || new Date().toISOString().slice(0,10);
+  const todayAppointments = appointments.filter((a) => {
+    const iso = toIsoDate(a.date || a.booking_date || a.bookingDate);
+    return iso === todayIso;
+  });
   const confirmedCount = appointments.filter(
-    (a) => a.status === "Đã nhận" || a.status === "Approved"
+    (a) => a.status === "Đã nhận" || a.status === "Approved" || a.status === "Đặt lịch hẹn thành công"
   ).length;
   const pendingCount = appointments.filter(
     (a) =>
@@ -48,9 +69,9 @@ export default function AppointmentsPage() {
   ).length;
 
   // Filter appointments
-  const filteredAppointments = appointments.filter((appointment) => {
-    const matchesDate =
-      selectedDate === "all" || appointment.date === selectedDate;
+    const filteredAppointments = appointments.filter((appointment) => {
+    const apptIso = toIsoDate(appointment.date || appointment.booking_date || appointment.bookingDate);
+    const matchesDate = !selectedDate || selectedDate === "all" || (apptIso && apptIso === selectedDate);
     const matchesStatus =
       selectedStatus === "all" || appointment.status === selectedStatus;
     const matchesService =
@@ -159,7 +180,7 @@ export default function AppointmentsPage() {
               Booking date
             </label>
             <input
-              type="text"
+              type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-transparent"

@@ -103,16 +103,40 @@ def list_appointments():
                 )
             )
 
+        # include related slot/pet/doctor where available via relationships
         appointments = query.order_by(models.Appointment.created_at.desc()).all()
 
-        data = [{
-            'appointment_id': appt.appointment_id,
-            'user_name': f"{user.first_name} {user.last_name}",
-            'email': user.email,
-            'status': appt.status,
-            'booking_date': appt.booking_date.isoformat(),
-            'created_at': appt.created_at.isoformat()
-        } for appt, user in appointments]
+        data = []
+        for appt, user in appointments:
+            # related objects via ORM relationships
+            pet_name = None
+            try:
+                pet_name = getattr(appt.pet, 'name', None)
+            except Exception:
+                pet_name = None
+
+            doctor_name = None
+            try:
+                doctor_name = getattr(appt.doctor, 'doctor_name', None)
+            except Exception:
+                doctor_name = None
+
+            slot = getattr(appt, 'slot', None)
+
+            data.append({
+                'appointment_id': appt.appointment_id,
+                'slot_id': getattr(slot, 'slot_id', None),
+                'check_in': slot.check_in.isoformat() if slot and slot.check_in else None,
+                'check_out': slot.check_out.isoformat() if slot and slot.check_out else None,
+                'user_name': f"{user.first_name} {user.last_name}",
+                'email': user.email,
+                'status': appt.status,
+                'booking_date': appt.booking_date.isoformat() if appt.booking_date else None,
+                'created_at': appt.created_at.isoformat() if appt.created_at else None,
+                'pet_name': pet_name,
+                'doctor_name': doctor_name,
+                'service': appt.service
+            })
 
         return ok(data)
 
@@ -803,13 +827,14 @@ def today_recent_slots():
     try:
         today = date.today()
 
-        slots = (
+        slots_query = (
             models.db.session.query(models.Slot)
             .filter(func.date(models.Slot.check_in) == today)
             .order_by(models.Slot.check_in.asc())
-            .limit(5)
-            .all()
         )
+
+        # fetch up to 5 recent slots for display, but also compute totals
+        slots = slots_query.limit(5).all()
 
         data = []
 
@@ -851,7 +876,25 @@ def today_recent_slots():
                 ] if report else []
             })
 
-        return ok(data)
+        # total slots today
+        try:
+            total_slots = models.db.session.query(func.count(models.Slot.slot_id)).filter(func.date(models.Slot.check_in) == today).scalar() or 0
+        except Exception:
+            total_slots = 0
+
+        # distinct new pets via patient_report -> pet_id for today's slots
+        try:
+            total_new_pets = models.db.session.query(func.count(func.distinct(models.PatientReport.pet_id))).join(
+                models.Slot, models.PatientReport.slot_id == models.Slot.slot_id
+            ).filter(func.date(models.Slot.check_in) == today).scalar() or 0
+        except Exception:
+            total_new_pets = 0
+
+        return ok({
+            'rows': data,
+            'total_slots': int(total_slots),
+            'new_pets': int(total_new_pets)
+        })
 
     except Exception as e:
         print('Error fetching today recent slots:', e)

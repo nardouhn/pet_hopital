@@ -124,9 +124,9 @@ export default function UsersPage() {
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
                   Contact
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                {/* <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
                   Joined
-                </th>
+                </th> */}
                 <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">
                   Actions
                 </th>
@@ -204,7 +204,7 @@ export default function UsersPage() {
                     </td>
 
                     {/* Joined Column */}
-                    <td className="px-6 py-4">
+                    {/* <td className="px-6 py-4">
                       <span className="text-sm text-gray-700">
                         {user.joinDate ? new Date(user.joinDate).toLocaleDateString("vi-VN", {
                           year: "numeric",
@@ -212,7 +212,7 @@ export default function UsersPage() {
                           day: "numeric",
                         }) : 'N/A'}
                       </span>
-                    </td>
+                    </td> */}
 
                     {/* Actions Column */}
                     <td className="px-6 py-4">
