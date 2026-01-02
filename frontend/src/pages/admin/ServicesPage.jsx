@@ -10,15 +10,7 @@ export default function ServicesPage() {
   useEffect(() => {
     Promise.all([api.getServices(), api.getMedications()]).then(
       ([servicesData, medicationsData]) => {
-        // Normalize backend Service shape to UI-friendly fields
-        const normalized = (servicesData || []).map((s) => ({
-          id: s.service_id || s.id,
-          name: s.name,
-          price: s.price,
-          category: s.service_category || s.category || 'General',
-          duration: s.duration || '-',
-        }));
-        setServices(normalized);
+        setServices(servicesData);
         setMedications(medicationsData);
         setLoading(false);
       }

@@ -22,6 +22,8 @@ import RecordsPage from "@/pages/admin/RecordsPage";
 import ServicesPage from "@/pages/admin/ServicesPage";
 import InvoicesPage from "@/pages/admin/InvoicesPage";
 import HotelPage from "@/pages/admin/HotelPage";
+import StatisticsPage from "@/pages/admin/StatisticsPage";
+import FeedbackPage from "@/pages/admin/FeedbackPage";
 
 import AuthGuard from "@/guards/AuthGuard";
 
@@ -59,8 +61,6 @@ export default function AppRoutes() {
     { path: "/signup", element: <SignupPage /> },
     { path: "/login", element: <LoginPage /> },
     { path: "/services/:slug", element: <ServicePage /> },
-
-    {},
     {
       element: <AuthGuard />,
       children: [
@@ -141,21 +141,11 @@ export default function AppRoutes() {
             },
             {
               path: "statistics",
-              element: (
-                <PlaceholderPage
-                  title="Thống kê"
-                  description="Statistics page coming soon"
-                />
-              ),
+              element: <StatisticsPage />,
             },
             {
               path: "feedback",
-              element: (
-                <PlaceholderPage
-                  title="Feedback"
-                  description="Feedback page coming soon"
-                />
-              ),
+              element: <FeedbackPage />,
             },
           ],
         },

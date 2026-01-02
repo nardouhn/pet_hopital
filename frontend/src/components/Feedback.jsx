@@ -3,14 +3,20 @@ import { motion } from "framer-motion";
 import { Heart, Star } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { getReviews, submitFeedback } from "@/api/mockApi";
+import { useNavigate } from "react-router-dom";
 
 const Feedback = () => {
-  // Hide entire feedback section for logged-in users (business rule)
+  const navigate = useNavigate();
+
   let auth = null;
   try { auth = JSON.parse(localStorage.getItem('auth')); } catch (e) { auth = null; }
-  if (auth && auth.isAuthenticated) return null;
+  const isAuthenticated = !!(auth && auth.isAuthenticated);
 
-  const [form, setForm] = useState({ name: "", email: "", feedback: "" });
+  const [form, setForm] = useState({ 
+    name: isAuthenticated ? (auth?.user?.name || '') : '', 
+    email: isAuthenticated ? (auth?.user?.email || '') : '', 
+    feedback: "" 
+  });
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -138,85 +144,107 @@ const Feedback = () => {
         </div>
 
         {/* FORM GỬI FEEDBACK */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="text-center"
-        >
-          <div className="flex justify-center mb-4">
-            <span className="bg-pink-100 text-pink-700 px-4 py-1 rounded-full font-semibold text-sm flex items-center gap-2">
-              <Heart className="w-4 h-4" /> Hãy để lại feedback tại đây nhé!
-            </span>
-          </div>
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">
-            Chia sẻ trải nghiệm của bạn
-          </h2>
-          <p className="text-gray-600 mb-10">
-            Trải nghiệm của bạn sẽ giúp cải thiện dịch vụ của chúng tôi!
-          </p>
-
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white max-w-3xl mx-auto p-8 rounded-3xl shadow-lg border border-blue-100"
+        {isAuthenticated ? (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="text-center"
           >
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Your Name *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  placeholder="Your name"
-                  required
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="your@email.com"
-                  required
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                />
-              </div>
+            <div className="flex justify-center mb-4">
+              <span className="bg-pink-100 text-pink-700 px-4 py-1 rounded-full font-semibold text-sm flex items-center gap-2">
+                <Heart className="w-4 h-4" /> Hãy để lại feedback tại đây nhé!
+              </span>
             </div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">
+              Chia sẻ trải nghiệm của bạn
+            </h2>
+            <p className="text-gray-600 mb-10">
+              Trải nghiệm của bạn sẽ giúp cải thiện dịch vụ của chúng tôi!
+            </p>
 
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Your Feedback *
-              </label>
-              <textarea
-                name="feedback"
-                value={form.feedback}
-                onChange={handleChange}
-                placeholder="Share your experience or suggestions..."
-                rows={4}
-                required
-                className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-              ></textarea>
-            </div>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              type="submit"
-              className="bg-gradient-to-r from-cyan-400 to-teal-400 text-white font-semibold px-8 py-3 rounded-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 mx-auto"
+            <form
+              onSubmit={handleSubmit}
+              className="bg-white max-w-3xl mx-auto p-8 rounded-3xl shadow-lg border border-blue-100"
             >
-              Submit Feedback <Heart className="w-5 h-5" />
-            </motion.button>
-          </form>
-        </motion.div>
+              <div className="grid md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Your Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    placeholder="Your name"
+                    required
+                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="your@email.com"
+                    required
+                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Your Feedback *
+                </label>
+                <textarea
+                  name="feedback"
+                  value={form.feedback}
+                  onChange={handleChange}
+                  placeholder="Share your experience or suggestions..."
+                  rows={4}
+                  required
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                ></textarea>
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                type="submit"
+                className="bg-gradient-to-r from-cyan-400 to-teal-400 text-white font-semibold px-8 py-3 rounded-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 mx-auto"
+              >
+                Submit Feedback <Heart className="w-5 h-5" />
+              </motion.button>
+            </form>
+          </motion.div>
+        ) : (
+          <div className="bg-white max-w-3xl mx-auto p-8 rounded-3xl shadow-lg border border-blue-100 text-center">
+            <p className="font-semibold text-gray-700 mb-4">
+              Vui lòng đăng nhập hoặc đăng ký để để lại feedback
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => navigate("/login")}
+                className="px-6 py-2 rounded-full bg-[#2e94a5] text-white hover:opacity-90 transition-opacity duration-200"
+              >
+                Đăng nhập
+              </button>
+              <button
+                onClick={() => navigate("/signup")}
+                className="px-6 py-2 rounded-full border border-[#2e94a5] text-[#2e94a5] hover:bg-[#2e94a5] hover:text-white transition-colors duration-200"
+              >
+                Đăng ký
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

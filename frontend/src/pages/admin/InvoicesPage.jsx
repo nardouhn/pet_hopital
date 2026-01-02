@@ -27,25 +27,7 @@ export default function InvoicesPage() {
 
   useEffect(() => {
     api.getInvoices().then((data) => {
-      // Normalize invoice shape for UI expectations
-      const normalized = (data || []).map((inv) => {
-        const pr = inv.patient_report || {};
-        const pet = pr.pet || {};
-        const owner = pr.owner || {};
-        return {
-          invoiceId: inv.invoice_id || inv.invoiceId || inv.id,
-          amount: inv.total || inv.amount || 0,
-          status: inv.status || 'Pending',
-          patientName: pet.name || 'Unknown Pet',
-          ownerName: owner.first_name ? `${owner.first_name} ${owner.last_name || ''}`.trim() : owner.email || 'Unknown Owner',
-          dueDate: inv.due_date || inv.dueDate || null,
-          subtotal: inv.total || 0,
-          tax: inv.tax || 0,
-          services: inv.services || [],
-          medications: inv.medications || [],
-        };
-      });
-      setInvoices(normalized);
+      setInvoices(data);
       setLoading(false);
     });
   }, []);

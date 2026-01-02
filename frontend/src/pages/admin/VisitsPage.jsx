@@ -9,7 +9,7 @@ import {
   ExternalLink,
   Trash2,
 } from "lucide-react";
-import { api } from "@/api/mockApi";
+import { getAdminAppointments, getAppointmentsStats } from "@/api/mockApi";
 
 export default function VisitsPage() {
   const [visits, setVisits] = useState([]);
@@ -21,10 +21,22 @@ export default function VisitsPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    api.getVisits().then((data) => {
-      setVisits(data);
-      setLoading(false);
-    });
+    const fetchData = async () => {
+      try {
+        const [visitsData, statsData] = await Promise.all([
+          getAdminAppointments(),
+          getAppointmentsStats()
+        ]);
+        setVisits(visitsData);
+        // Use statsData if needed
+      } catch (error) {
+        console.error('Error fetching visits:', error);
+        setVisits([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   // Calculate stats for today

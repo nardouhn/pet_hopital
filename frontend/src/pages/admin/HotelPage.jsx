@@ -10,32 +10,8 @@ export default function HotelPage() {
   useEffect(() => {
     Promise.all([api.getHotelBookings(), api.getHotelRooms()]).then(
       ([bookingsData, roomsData]) => {
-        const now = new Date();
-        const normalizedBookings = (bookingsData || []).map((b) => {
-          const pet = b.pet || {};
-          const owner = b.owner || {};
-          const checkIn = b.check_in ? new Date(b.check_in) : null;
-          const checkOut = b.check_out ? new Date(b.check_out) : null;
-          let bookingType = 'upcoming';
-          if (checkIn && checkOut && checkIn <= now && now <= checkOut) bookingType = 'current';
-          else if (checkIn && (!checkOut || checkIn <= now)) bookingType = 'current';
-          return {
-            id: b.petboard_id || b.id,
-            petName: pet.name || 'Unknown Pet',
-            ownerName: owner.first_name ? `${owner.first_name} ${owner.last_name || ''}`.trim() : (owner.email || 'Unknown Owner'),
-            checkIn: checkIn ? checkIn.toLocaleDateString() : b.check_in,
-            checkOut: checkOut ? checkOut.toLocaleDateString() : b.check_out,
-            bookingType,
-          };
-        });
-
-        const normalizedRooms = (roomsData || []).map((r) => ({
-          number: r.name || `Room ${r.hotel_id}`,
-          status: 'Available',
-        }));
-
-        setBookings(normalizedBookings);
-        setRooms(normalizedRooms);
+        setBookings(bookingsData);
+        setRooms(roomsData);
         setLoading(false);
       }
     );

@@ -9,7 +9,21 @@ from .routes.users import users_bp, api_users_bp
 from .routes.appointments import appt_bp
 from .routes.feedback import fb_bp
 from .routes.doctors import doctors_bp
-from .routes.admin import admin_bp
+from .routes.admin import (
+    admin_bp,
+    admin_appointments_bp,
+    admin_doctors_bp,
+    admin_feedback_bp,
+    admin_invoices_bp,
+    admin_overview_bp,
+    admin_reports_bp,
+    admin_pet_hotel_bp,
+    admin_pets_bp,
+    admin_items_bp,
+    admin_slots_bp,
+    admin_statistics_bp,
+    admin_users_bp
+)
 from .routes.vaccination import vax_bp
 
 
@@ -36,6 +50,18 @@ def create_app(config_object=None):
     app.register_blueprint(fb_bp, url_prefix='/feedback')
     app.register_blueprint(doctors_bp, url_prefix='/doctor')
     app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(admin_appointments_bp)
+    app.register_blueprint(admin_doctors_bp)
+    app.register_blueprint(admin_feedback_bp)
+    app.register_blueprint(admin_invoices_bp)
+    app.register_blueprint(admin_overview_bp)
+    app.register_blueprint(admin_reports_bp)
+    app.register_blueprint(admin_pet_hotel_bp)
+    app.register_blueprint(admin_pets_bp)
+    app.register_blueprint(admin_items_bp)
+    app.register_blueprint(admin_slots_bp)
+    app.register_blueprint(admin_statistics_bp)
+    app.register_blueprint(admin_users_bp)
     app.register_blueprint(vax_bp, url_prefix='/vaccination')
 
     @app.route('/')
