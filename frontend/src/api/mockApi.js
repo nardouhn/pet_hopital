@@ -56,13 +56,19 @@ async function request(path, { method = "GET", body, auth = true } = {}) {
 /* ===== DASHBOARD ===== */
 export async function getOverviewStats() {
   try {
-    const res = await request("/admin/statistics");
-    const data = res?.data || {};
+    const [statsRes, petsRes, usersRes] = await Promise.all([
+      request("/admin/statistics", { auth: true }),
+      request("/admin/overview/total-pets", { auth: true }),
+      request("/admin/overview/total-users", { auth: true }),
+    ]);
 
-    const totalPets = data.totalPets || 0;
-    const totalUsers = data.totalUsers || 0;
-    const totalAppointments = data.totalAppointments || 0;
-    const totalRevenue = data.totalRevenue || 0;
+    const data = statsRes?.data || {};
+
+    // Prefer the dedicated endpoints' values, fall back to /admin/statistics if present
+    const totalPets = petsRes?.data?.totalPets ?? data.totalPets ?? 0;
+    const totalUsers = usersRes?.data?.totalUsers ?? data.totalUsers ?? 0;
+    const totalAppointments = data.totalAppointments ?? 0;
+    const totalRevenue = data.totalRevenue ?? 0;
 
     return [
       { title: "Tổng thú cưng", value: totalPets },
@@ -71,38 +77,45 @@ export async function getOverviewStats() {
       { title: "Doanh thu", value: totalRevenue ? `₫${Number(totalRevenue).toLocaleString()}` : "₫0" },
     ];
   } catch (err) {
-    // Fallback to mock data on error
-    await delay();
+    console.error('getOverviewStats error', err);
+    // Return zeroed stats if anything fails
     return [
-      { title: "Tổng thú cưng", value: 1247 },
-      { title: "Người dùng", value: 892 },
-      { title: "Lịch hôm nay", value: 34 },
-      { title: "Doanh thu", value: "₫245M" },
+      { title: "Tổng thú cưng", value: 0 },
+      { title: "Người dùng", value: 0 },
+      { title: "Lịch hôm nay", value: 0 },
+      { title: "Doanh thu", value: "₫0" },
     ];
   }
 }
 
 export async function getRecentAppointments() {
   try {
-    // Use admin endpoint to include user/pet/doctor details and latest-first ordering
-    const res = await request("/admin/appointments");
+    // Use overview endpoint for today's recent slots (returns slot/check_in, pet_name, user_name, services, status)
+    const res = await request('/admin/overview/today-recent-slots', { auth: true });
     const rows = res?.data || [];
-    // Sort latest by created_at or booking_date (fallback to appointment_id)
+
+    // Sort by check_in descending (latest first)
     rows.sort((a, b) => {
-      const ad = a.booking_date || a.created_at || a.appointment_id || 0;
-      const bd = b.booking_date || b.created_at || b.appointment_id || 0;
+      const ad = a.check_in || 0;
+      const bd = b.check_in || 0;
       return new Date(bd) - new Date(ad);
     });
-    return rows.slice(0, 10).map((r) => ({
-      pet: r.pet?.name || r.pet_name || "-",
-      owner: r.user ? `${r.user.first_name || ''} ${r.user.last_name || ''}`.trim() : (r.owner_name || "-"),
-      doctor: r.doctor?.doctor_name || r.doctor_name || r.doctor || "-",
-      time: r.timeslot || r.check_in || "-",
-      status: r.status || "-",
-    }));
+
+    return rows.slice(0, 10).map((r) => {
+      const aid = r.appointment_id || r.slot_id || null;
+      return ({
+        id: aid,
+        appointment_id: aid,
+        pet: r.pet_name || '-',
+        owner: r.user_name || '-',
+        // Prefer explicit doctor_name if provided, otherwise fallback to first service or '-'
+        doctor: r.doctor_name || ((Array.isArray(r.services) && r.services.length > 0) ? r.services[0] : '-'),
+        time: r.check_in ? (new Date(r.check_in)).toLocaleString() : '-',
+        status: r.status || '-',
+      });
+    });
   } catch (err) {
     console.error('getRecentAppointments error', err);
-    await delay();
     return [];
   }
 }
@@ -123,29 +136,8 @@ export async function getUsers() {
       status: "Hoạt động",
     }));
   } catch (err) {
-    await delay();
-    return [
-      {
-        id: 1,
-        name: "Nguyễn Văn A",
-        email: "vana@gmail.com",
-        phone: "0912345678",
-        pets: 2,
-        role: 'customer',
-        status: "Hoạt động",
-        is_active: true,
-      },
-      {
-        id: 2,
-        name: "Lê Thị B",
-        email: "lethi@gmail.com",
-        phone: "0987654321",
-        pets: 1,
-        role: 'admin',
-        status: "Tạm khóa",
-        is_active: false,
-      },
-    ];
+    console.error('getUsers error', err);
+    return [];
   }
 }
 
@@ -194,23 +186,8 @@ export async function getDoctors() {
       status: d.status || "",
     }));
   } catch (err) {
-    await delay();
-    return [
-      {
-        id: 1,
-        name: "BS. Trần Minh",
-        specialty: "Nội khoa",
-        experience: "8 năm",
-        status: "Đang làm việc",
-      },
-      {
-        id: 2,
-        name: "BS. Nguyễn Lan",
-        specialty: "Ngoại khoa",
-        experience: "5 năm",
-        status: "Nghỉ phép",
-      },
-    ];
+    console.error('getDoctors error', err);
+    return [];
   }
 }
 
@@ -227,28 +204,8 @@ export const getReviews = async () => {
       rating: 5,
     }));
   } catch (err) {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          {
-            id: 1,
-            name: "Trang Lê",
-            pet: "Max (Chó Poodle)",
-            content:
-              "Bác sĩ ở đây siêu dễ thương luôn! Bé chó nhà mình đi khám mà cứ vẫy đuôi suốt.",
-            rating: 5,
-          },
-          {
-            id: 2,
-            name: "Hải Đăng",
-            pet: "Luna (Mèo Anh lông dài)",
-            content:
-              "Phòng khám rất chuyên nghiệp, bác sĩ nhẹ nhàng và giải thích rõ ràng.",
-            rating: 5,
-          },
-        ]);
-      }, 600);
-    });
+    console.error('getReviews error', err);
+    return [];
   }
 };
 
@@ -346,78 +303,14 @@ export async function getMyAppointments() {
     const res = await request("/user/appointments");
     const rows = res?.data || res;
 
-    // If backend returns empty array during development, provide a mocked dataset for UI testing
-    if (import.meta.env.DEV && Array.isArray(rows) && rows.length === 0) {
-      await delay(80);
-      return [
-        {
-          appointment_id: 101,
-          booking_date: '2025-12-30',
-          timeslot: '09:00 - 10:00',
-          pet_name: 'Max',
-          doctor_name: 'BS. Nguyễn Văn A',
-          service: 'Khám tổng quát',
-          description: 'Bị sốt, bỏ ăn',
-          invoice_url: null,
-          status: 'confirmed'
-        },
-        {
-          appointment_id: 102,
-          booking_date: '2025-12-31',
-          timeslot: '10:00 - 11:00',
-          pet_name: 'Luna',
-          doctor_name: 'BS. Trần Minh',
-          service: 'Tiêm vacxin',
-          description: 'Tiêm phòng định kỳ',
-          invoice_url: `${BASE}/invoices/102`,
-          status: 'pending'
-        },
-        {
-          appointment_id: 103,
-          booking_date: '2026-01-02',
-          timeslot: '',
-          pet_name: 'Buddy',
-          doctor_name: null,
-          service: null,
-          description: null,
-          invoice_url: null,
-          status: 'pending'
-        }
-      ];
-    }
+    // No development mock fallbacks — return whatever backend provides
+    // If backend returns empty array, the UI will handle it.
+
 
     return rows;
   } catch (err) {
-    // In development we can fallback to mock data to simplify UI testing; in production bubble the error.
-    if (import.meta.env.DEV) {
-      await delay(80);
-      return [
-        {
-          appointment_id: 201,
-          booking_date: '2025-12-30',
-          timeslot: '09:00 - 10:00',
-          pet_name: 'Milo',
-          doctor_name: 'BS. Lan',
-          service: 'Khám tổng quát',
-          description: 'Mèo sốt',
-          invoice_url: null,
-          status: 'confirmed'
-        },
-        {
-          appointment_id: 202,
-          booking_date: '2025-12-31',
-          timeslot: '11:00 - 12:00',
-          pet_name: 'Bella',
-          doctor_name: 'BS. Hà',
-          service: 'Spa',
-          description: 'Gội và cắt móng',
-          invoice_url: `${BASE}/invoices/202`,
-          status: 'pending'
-        }
-      ];
-    }
-
-    throw err;
+    console.error('getMyAppointments error', err);
+    return [];
   }
 }
 
@@ -482,16 +375,7 @@ export async function getPet(petId) {
     const res = await request(`/admin/pets/${petId}`);
     const data = res?.data || res;
     if (!data || !data.pet) {
-      return {
-        name: 'Max',
-        breed: 'Dog',
-        age: 3,
-        owner: {
-          first_name: 'John',
-          last_name: 'Doe',
-          email: 'john@example.com'
-        }
-      };
+      return null;
     }
     return {
       name: data.pet.name,
@@ -504,16 +388,8 @@ export async function getPet(petId) {
       }
     };
   } catch (err) {
-    return {
-      name: 'Max',
-      breed: 'Dog',
-      age: 3,
-      owner: {
-        first_name: 'John',
-        last_name: 'Doe',
-        email: 'john@example.com'
-      }
-    };
+    console.error('getPet error', err);
+    return null;
   }
 }
 
@@ -669,19 +545,7 @@ export async function getAdminAppointments() {
   try {
     const res = await request('/admin/appointments');
     const data = res?.data || [];
-    if (data.length === 0) {
-      return [
-        {
-          appointment_id: 1,
-          pet: { name: 'Max' },
-          doctor: { doctor_name: 'Dr. Smith' },
-          booking_date: '2025-01-01',
-          timeslot: '10:00',
-          user: { first_name: 'John', last_name: 'Doe' },
-          status: 'confirmed'
-        }
-      ];
-    }
+    if (data.length === 0) return [];
     return data.map(r => ({
       appointment_id: r.appointment_id,
       pet: { name: r.pet_name },
@@ -695,18 +559,8 @@ export async function getAdminAppointments() {
       status: r.status
     }));
   } catch (err) {
-    await delay();
-    return [
-      {
-        appointment_id: 1,
-        pet: { name: 'Max' },
-        doctor: { doctor_name: 'Dr. Smith' },
-        booking_date: '2025-01-01',
-        timeslot: '10:00',
-        user: { first_name: 'John', last_name: 'Doe' },
-        status: 'confirmed'
-      }
-    ];
+    console.error('getAdminAppointments error', err);
+    return [];
   }
 }
 
@@ -715,7 +569,7 @@ export async function getAppointmentsStats() {
     const res = await request('/admin/appointments/stats');
     return res?.data || {};
   } catch (err) {
-    await delay();
+    console.error('getAppointmentsStats error', err);
     return {};
   }
 }
@@ -723,28 +577,21 @@ export async function getAppointmentsStats() {
 export async function getAdminDoctors() {
   try {
     const res = await request('/admin/doctors');
-    const data = res?.data || [];
-    if (data.length === 0) {
-      return [
-        {
-          doctor_id: 1,
-          doctor_name: 'Dr. Smith',
-          email: 'smith@clinic.com',
-          current_status: 'Available'
-        }
-      ];
-    }
-    return data;
+    const rows = res?.data || [];
+    return rows.map(d => ({
+      id: d.doctor_id || d.id,
+      name: d.doctor_name || d.name || '',
+      email: d.email || '',
+      specialty: d.specialty || '',
+      phone: d.phone || '',
+      // Ensure schedule exists to avoid .map() on undefined
+      schedule: Array.isArray(d.schedule) ? d.schedule : (d.schedule ? [d.schedule] : []),
+      monthlySchedule: d.monthlySchedule || {},
+      current_status: d.current_status || d.status || 'NONE'
+    }));
   } catch (err) {
-    await delay();
-    return [
-      {
-        doctor_id: 1,
-        doctor_name: 'Dr. Smith',
-        email: 'smith@clinic.com',
-        current_status: 'Available'
-      }
-    ];
+    console.error('getAdminDoctors error', err);
+    return [];
   }
 }
 
@@ -771,7 +618,7 @@ export async function getDoctorsSchedule() {
     const res = await request('/admin/doctors/schedule');
     return res?.data || [];
   } catch (err) {
-    await delay();
+    console.error('getDoctorsSchedule error', err);
     return [];
   }
 }
@@ -781,7 +628,7 @@ export async function getFeedbackStats() {
     const res = await request('/admin/feedback/stats');
     return res?.data || {};
   } catch (err) {
-    await delay();
+    console.error('getFeedbackStats error', err);
     return {};
   }
 }
@@ -791,7 +638,7 @@ export async function getFeedbackList() {
     const res = await request('/admin/feedback');
     return res?.data || [];
   } catch (err) {
-    await delay();
+    console.error('getFeedbackList error', err);
     return [];
   }
 }
@@ -810,7 +657,7 @@ export async function getInvoicesStats() {
     const res = await request('/admin/invoices/stats');
     return res?.data || {};
   } catch (err) {
-    await delay();
+    console.error('getInvoicesStats error', err);
     return {};
   }
 }
@@ -821,7 +668,7 @@ export async function getInvoicesList(params) {
     const res = await request(`/admin/invoices?${query}`);
     return res?.data || [];
   } catch (err) {
-    await delay();
+    console.error('getInvoicesList error', err);
     return [];
   }
 }
@@ -831,7 +678,7 @@ export async function getInvoiceDetails(invoiceId) {
     const res = await request(`/admin/invoices/details/${invoiceId}`);
     return res?.data || {};
   } catch (err) {
-    await delay();
+    console.error('getInvoiceDetails error', err);
     return {};
   }
 }
@@ -851,7 +698,7 @@ export async function getPetStats() {
     const res = await request('/admin/pets/stats');
     return res?.data || {};
   } catch (err) {
-    await delay();
+    console.error('getPetStats error', err);
     return {};
   }
 }
@@ -861,7 +708,7 @@ export async function getSlotsStats() {
     const res = await request('/admin/slots/stats');
     return res?.data || {};
   } catch (err) {
-    await delay();
+    console.error('getSlotsStats error', err);
     return {};
   }
 }
@@ -872,7 +719,7 @@ export async function getSlotsList(params) {
     const res = await request(`/admin/slots?${query}`);
     return res?.data || [];
   } catch (err) {
-    await delay();
+    console.error('getSlotsList error', err);
     return [];
   }
 }
@@ -882,7 +729,7 @@ export async function searchUsers(query) {
     const res = await request(`/admin/users/search?q=${encodeURIComponent(query)}`);
     return res?.data || [];
   } catch (err) {
-    await delay();
+    console.error('searchUsers error', err);
     return [];
   }
 }
@@ -891,38 +738,23 @@ export async function getAdminPets() {
   try {
     const res = await request('/admin/pets');
     const data = res?.data || [];
-    if (data.length === 0) {
-      return [
-        {
-          pet_id: 1,
-          name: 'Max',
-          breed: 'Dog',
-          age: 3,
-          owner: { first_name: 'John', last_name: 'Doe' }
-        }
-      ];
-    }
+    if (data.length === 0) return [];
     return data.map(p => ({
-      pet_id: p.pet_id,
-      name: p.name,
-      breed: p.breed,
-      age: p.age,
-      owner: {
-        first_name: p.owner_name.split(' ')[0] || '',
-        last_name: p.owner_name.split(' ')[1] || ''
-      }
+      id: p.pet_id || p.id,
+      pet_id: p.pet_id || p.id,
+      name: p.name || '',
+      breed: p.breed || '',
+      age: p.age ?? null,
+      // Return owner as a simple string to match UI expectations
+      owner: p.owner_name || (p.owner && (p.owner.full_name || `${p.owner.first_name || ''} ${p.owner.last_name || ''}`)) || '',
+      species: p.species || 'Unknown',
+      gender: p.gender || '',
+      status: p.status || 'Unknown',
+      lastVisit: p.last_visit || p.lastVisit || null
     }));
   } catch (err) {
-    await delay();
-    return [
-      {
-        pet_id: 1,
-        name: 'Max',
-        breed: 'Dog',
-        age: 3,
-        owner: { first_name: 'John', last_name: 'Doe' }
-      }
-    ];
+    console.error('getAdminPets error', err);
+    return [];
   }
 }
 
@@ -930,20 +762,9 @@ export async function getAdminPets() {
 export const api = {
   getVisits: async () => {
     try {
-      const rows = await request('/admin/appointments');
+      const rows = await request('/admin/appointments', { auth: true });
       const data = rows?.data || [];
-      if (data.length === 0) {
-        return [
-          {
-            date: '2025-01-01',
-            petName: 'Max',
-            ownerName: 'John Doe',
-            doctorName: 'Dr. Smith',
-            status: 'confirmed',
-            service: 'Checkup'
-          }
-        ];
-      }
+      if (data.length === 0) return [];
       return data.map(r => ({
         date: r.booking_date,
         petName: r.pet_name,
@@ -953,17 +774,8 @@ export const api = {
         service: 'General'
       }));
     } catch (err) {
-      await delay();
-      return [
-        {
-          date: '2025-01-01',
-          petName: 'Max',
-          ownerName: 'John Doe',
-          doctorName: 'Dr. Smith',
-          status: 'confirmed',
-          service: 'Checkup'
-        }
-      ];
+      console.error('api.getVisits error', err);
+      return [];
     }
   },
 
@@ -971,17 +783,7 @@ export const api = {
     try {
       const res = await request('/admin/items/services');
       const data = res?.data || [];
-      if (data.length === 0) {
-        return [
-          {
-            id: 1,
-            name: 'Checkup',
-            price: 50000,
-            category: 'Examination',
-            duration: '30 min'
-          }
-        ];
-      }
+      if (data.length === 0) return [];
       return data.map(s => ({
         id: s.service_id,
         name: s.name,
@@ -990,16 +792,8 @@ export const api = {
         duration: '-'
       }));
     } catch (err) {
-      await delay();
-      return [
-        {
-          id: 1,
-          name: 'Checkup',
-          price: 50000,
-          category: 'Examination',
-          duration: '30 min'
-        }
-      ];
+      console.error('api.getServices error', err);
+      return [];
     }
   },
 
@@ -1007,16 +801,7 @@ export const api = {
     try {
       const res = await request('/admin/items/medicines');
       const data = res?.data || [];
-      if (data.length === 0) {
-        return [
-          {
-            id: 1,
-            name: 'Painkiller',
-            price: 10000,
-            type: 'Medication'
-          }
-        ];
-      }
+      if (data.length === 0) return [];
       return data.map(m => ({
         id: m.medicine_id,
         name: m.name,
@@ -1024,15 +809,8 @@ export const api = {
         type: 'Medication'
       }));
     } catch (err) {
-      await delay();
-      return [
-        {
-          id: 1,
-          name: 'Painkiller',
-          price: 10000,
-          type: 'Medication'
-        }
-      ];
+      console.error('api.getMedications error', err);
+      return [];
     }
   },
 
@@ -1040,22 +818,7 @@ export const api = {
     try {
       const res = await request('/admin/invoices');
       const data = res?.data || [];
-      if (data.length === 0) {
-        return [
-          {
-            invoiceId: 1,
-            amount: 50000,
-            status: 'Paid',
-            patientName: 'Max',
-            ownerName: 'John Doe',
-            dueDate: '2025-01-01',
-            subtotal: 50000,
-            tax: 0,
-            services: [],
-            medications: []
-          }
-        ];
-      }
+      if (data.length === 0) return [];
       return data.map(inv => ({
         invoiceId: inv.invoice_id,
         amount: inv.total,
@@ -1069,21 +832,8 @@ export const api = {
         medications: []
       }));
     } catch (err) {
-      await delay();
-      return [
-        {
-          invoiceId: 1,
-          amount: 50000,
-          status: 'Paid',
-          patientName: 'Max',
-          ownerName: 'John Doe',
-          dueDate: '2025-01-01',
-          subtotal: 50000,
-          tax: 0,
-          services: [],
-          medications: []
-        }
-      ];
+      console.error('api.getInvoices error', err);
+      return [];
     }
   },
 
@@ -1091,19 +841,7 @@ export const api = {
     try {
       const res = await request('/admin/pet-hotel/registrations');
       const data = res?.data || [];
-      if (data.length === 0) {
-        return [
-          {
-            petName: 'Max',
-            ownerName: 'John Doe',
-            checkIn: '2025-01-01',
-            checkOut: null,
-            pethouse: 'Room 1',
-            days: 1,
-            total: 50000
-          }
-        ];
-      }
+      if (data.length === 0) return [];
       return data.map(b => ({
         petName: b.pet_name,
         ownerName: b.user_name,
@@ -1114,18 +852,8 @@ export const api = {
         total: b.total
       }));
     } catch (err) {
-      await delay();
-      return [
-        {
-          petName: 'Max',
-          ownerName: 'John Doe',
-          checkIn: '2025-01-01',
-          checkOut: null,
-          pethouse: 'Room 1',
-          days: 1,
-          total: 50000
-        }
-      ];
+      console.error('api.getHotelBookings error', err);
+      return [];
     }
   },
 
@@ -1137,7 +865,7 @@ export const api = {
         status: 'Available'
       }));
     } catch (err) {
-      await delay();
+      console.error('api.getHotelRooms error', err);
       return [];
     }
   },
@@ -1146,21 +874,7 @@ export const api = {
     try {
       const res = await request('/admin/patient_reports/list');
       const data = res?.data || [];
-      if (data.length === 0) {
-        return [
-          {
-            petName: 'Max',
-            ownerName: 'John Doe',
-            doctorName: 'Dr. Smith',
-            services: ['Checkup'],
-            medicines: [],
-            symptoms: [],
-            diseases: [],
-            status: 'Completed',
-            reportDate: '2025-01-01'
-          }
-        ];
-      }
+      if (data.length === 0) return [];
       return data.map(r => ({
         petName: r.pet.name,
         ownerName: r.user.user_name,
@@ -1173,26 +887,14 @@ export const api = {
         reportDate: r.check_in
       }));
     } catch (err) {
-      await delay();
-      return [
-        {
-          petName: 'Max',
-          ownerName: 'John Doe',
-          doctorName: 'Dr. Smith',
-          services: ['Checkup'],
-          medicines: [],
-          symptoms: [],
-          diseases: [],
-          status: 'Completed',
-          reportDate: '2025-01-01'
-        }
-      ];
+      console.error('api.getMedicalRecords error', err);
+      return [];
     }
   },
 
   getMedicalRecordByReportId: async (reportId) => {
     try {
-      const res = await request(`/admin/patient_reports/download_report/${reportId}`);
+      const res = await request(`/admin/patient_reports/download_report/${reportId}`, { auth: true });
       const data = res?.data || res;
       return {
         petName: data.pet.name,
@@ -1206,11 +908,175 @@ export const api = {
         reportDate: data.check_in
       };
     } catch (err) {
-      await delay();
+      console.error('api.getMedicalRecordByReportId error', err);
       return null;
     }
   },
 };
+
+// Named helper exports matching requested names (use real backend routes)
+export async function getStats() {
+  try {
+    const res = await request('/admin/statistics', { auth: true });
+    return res?.data || {};
+  } catch (err) {
+    console.error('getStats error', err);
+    return {};
+  }
+}
+
+export async function getTodayAppointments() {
+  try {
+    const res = await request('/admin/overview/appointments-today', { auth: true });
+    return res?.data || {};
+  } catch (err) {
+    console.error('getTodayAppointments error', err);
+    return {};
+  }
+}
+
+export async function getAppointments(params) {
+  try {
+    const q = params ? `?${new URLSearchParams(params).toString()}` : '';
+    const res = await request(`/admin/appointments${q}`, { auth: true });
+    return res?.data || [];
+  } catch (err) {
+    console.error('getAppointments error', err);
+    return [];
+  }
+}
+
+export async function getQuickStats() {
+  // Alias to getStats - returns the dashboard summary
+  return getStats();
+}
+
+export async function addDoctor(payload) {
+  return await createDoctor(payload);
+}
+
+export async function addUser(payload) {
+  try {
+    const res = await request('/admin/users', { method: 'POST', body: payload });
+    return res?.data || res;
+  } catch (err) {
+    throw err;
+  }
+}
+
+export async function getPets() {
+  return await getAdminPets();
+}
+
+export async function getPetById(petId) {
+  try {
+    const res = await request(`/admin/pets/${petId}`, { auth: true });
+    return res?.data || null;
+  } catch (err) {
+    console.error('getPetById error', err);
+    return null;
+  }
+}
+
+export async function getServicesList() {
+  try {
+    const res = await request('/admin/items/services', { auth: true });
+    return res?.data || [];
+  } catch (err) {
+    console.error('getServicesList error', err);
+    return [];
+  }
+}
+
+export async function getMedicationsList() {
+  try {
+    const res = await request('/admin/items/medicines', { auth: true });
+    return res?.data || [];
+  } catch (err) {
+    console.error('getMedicationsList error', err);
+    return [];
+  }
+}
+
+export async function getVisits() {
+  try {
+    const res = await request('/admin/appointments', { auth: true });
+    return res?.data || [];
+  } catch (err) {
+    console.error('getVisits error', err);
+    return [];
+  }
+}
+
+export async function getMedicalRecords() {
+  try {
+    const res = await request('/admin/patient_reports/list', { auth: true });
+    return res?.data || [];
+  } catch (err) {
+    console.error('getMedicalRecords error', err);
+    return [];
+  }
+}
+
+export async function getMedicalRecordByReportId(reportId) {
+  try {
+    const res = await request(`/admin/patient_reports/download_report/${reportId}`, { auth: true });
+    return res?.data || null;
+  } catch (err) {
+    console.error('getMedicalRecordByReportId (named) error', err);
+    return null;
+  }
+}
+
+export async function getInvoices() {
+  try {
+    const res = await request('/admin/invoices', { auth: true });
+    return res?.data || [];
+  } catch (err) {
+    console.error('getInvoices error', err);
+    return [];
+  }
+}
+
+export async function getInvoiceById(invoiceId) {
+  try {
+    const res = await request(`/admin/invoices/details/${invoiceId}`, { auth: true });
+    return res?.data || null;
+  } catch (err) {
+    console.error('getInvoiceById error', err);
+    return null;
+  }
+}
+
+export async function getHotelBookings() {
+  try {
+    const res = await request('/admin/pet-hotel/registrations', { auth: true });
+    return res?.data || [];
+  } catch (err) {
+    console.error('getHotelBookings error', err);
+    return [];
+  }
+}
+
+export async function getHotelRooms() {
+  try {
+    const res = await request('/admin/pet-hotel/houses', { auth: true });
+    return res?.data || [];
+  } catch (err) {
+    console.error('getHotelRooms error', err);
+    return [];
+  }
+}
+
+export async function getFeedback() {
+  try {
+    const res = await request('/admin/feedback', { auth: true });
+    return res?.data || [];
+  } catch (err) {
+    console.error('getFeedback error', err);
+    return [];
+  }
+}
 
 // Also provide default export for compatibility
 export default api;

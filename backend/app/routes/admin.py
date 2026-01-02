@@ -5,6 +5,7 @@ from .. import models
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, or_, case, extract
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash
 import os
 import io
 from reportlab.pdfgen import canvas
@@ -12,6 +13,16 @@ from reportlab.lib.pagesizes import A4
 from flask import send_file
 
 admin_bp = Blueprint('admin', __name__)
+
+# Helper response constructors
+def ok(data, status=200):
+    return jsonify({'success': True, 'data': data}), status
+
+def ok_message(message, status=200):
+    return jsonify({'success': True, 'message': message}), status
+
+def err(message, status=500):
+    return jsonify({'success': False, 'error': message}), status
 
 admin_appointments_bp = Blueprint('admin_appointments', __name__, url_prefix='/admin/appointments')
 
@@ -41,15 +52,13 @@ def appointments_stats():
         print('Error fetching appointment stats:', e)
         total_today = pending_today = confirmed_today = canceled_today = 0
 
-    return jsonify({
-        'data': {
-            'date': today.isoformat(),
-            'totalToday': int(total_today),
-            'pendingToday': int(pending_today),
-            'confirmedToday': int(confirmed_today),
-            'canceledToday': int(canceled_today)
-        }
-    }), 200
+    return ok({
+        'date': today.isoformat(),
+        'totalToday': int(total_today),
+        'pendingToday': int(pending_today),
+        'confirmedToday': int(confirmed_today),
+        'canceledToday': int(canceled_today)
+    })
 
 # -------------------------------------------------
 # GET: Danh sách appointment với filter & search
@@ -105,11 +114,11 @@ def list_appointments():
             'created_at': appt.created_at.isoformat()
         } for appt, user in appointments]
 
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print('Error fetching appointments:', e)
-        return jsonify({'data': []}), 200
+        return ok([])
 
 # -------------------------------------------------
 # POST: Thêm slot cho 1 appointment
@@ -212,11 +221,11 @@ def list_doctors():
                 )
             })
 
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print('Error listing doctors:', e)
-        return jsonify({'data': []}), 200
+        return ok([])
 
 
 # -------------------------------------------------
@@ -248,9 +257,7 @@ def create_doctor():
         models.db.session.add(doctor)
         models.db.session.commit()
 
-        return jsonify({
-            'message': 'Doctor created successfully'
-        }), 201
+        return ok_message('Doctor created successfully', 201)
 
     except Exception as e:
         print('Error creating doctor:', e)
@@ -279,9 +286,7 @@ def delete_doctor(doctor_id):
         models.db.session.delete(doctor)
         models.db.session.commit()
 
-        return jsonify({
-            'message': 'Doctor deleted successfully'
-        }), 200
+        return ok_message('Doctor deleted successfully')
 
     except Exception as e:
         print('Error deleting doctor:', e)
@@ -328,13 +333,11 @@ def doctors_schedule():
                 'shift': ds.shift
             })
 
-        return jsonify({
-            'data': data
-        }), 200
+        return ok(data)
 
     except Exception as e:
         print('Error fetching doctors schedule:', e)
-        return jsonify({'data': []}), 200
+        return ok([])
 
 
 
@@ -406,19 +409,17 @@ def feedback_stats():
                 'created_at': fb.created_at.isoformat()
             })
 
-        return jsonify({
-            'data': {
-                'totalFeedback': total_feedback,
-                'ratingHigh': rating_high,
-                'ratingLow': rating_low,
-                'satisfaction': round(satisfaction, 2),
-                'recentFeedbacks': recent_data
-            }
-        }), 200
+        return ok({
+            'totalFeedback': total_feedback,
+            'ratingHigh': rating_high,
+            'ratingLow': rating_low,
+            'satisfaction': round(satisfaction, 2),
+            'recentFeedbacks': recent_data
+        })
 
     except Exception as e:
         print('Error fetching feedback stats:', e)
-        return jsonify({'data': {}}), 200
+        return ok({})
 
 
 # -------------------------------------------------
@@ -461,11 +462,11 @@ def list_feedback():
                 'created_at': fb.created_at.isoformat()
             })
 
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print('Error fetching feedback list:', e)
-        return jsonify({'data': []}), 200
+        return ok([])
 
 
 # -------------------------------------------------
@@ -525,15 +526,13 @@ def invoices_stats():
             func.coalesce(func.sum(models.Invoice.total), 0)
         ).one()
 
-        return jsonify({
-            'data': {
-                'totalCount': total_count,
-                'totalSum': float(total_sum)
-            }
-        }), 200
+        return ok({
+            'totalCount': total_count,
+            'totalSum': float(total_sum)
+        })
     except Exception as e:
         print('Error fetching invoice stats:', e)
-        return jsonify({'data': {'totalCount': 0, 'totalSum': 0}}), 200
+        return ok({'totalCount': 0, 'totalSum': 0})
 
 # -------------------------------------------------
 # GET / : Danh sách hóa đơn với filter date & user/email
@@ -592,11 +591,11 @@ def list_invoices():
             'check_out': slot.check_out.isoformat() if slot.check_out else None
         } for inv, report, user, pet, slot in invoices]
 
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print('Error fetching invoices:', e)
-        return jsonify({'data': []}), 200
+        return ok([])
 
 # -------------------------------------------------
 # GET /details/<invoice_id> : Chi tiết từng hóa đơn
@@ -644,11 +643,11 @@ def invoice_details(invoice_id):
             'medicines': medicines_list
         }
 
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print('Error fetching invoice details:', e)
-        return jsonify({'data': {}}), 200
+        return err('Failed to fetch invoice details')
 
 # -------------------------------------------------
 # GET /download_pdf/<invoice_id> : Xuất PDF hóa đơn
@@ -726,7 +725,7 @@ def total_pets():
         print('Error counting pets:', e)
         total = 0
 
-    return jsonify({'data': {'totalPets': int(total)}}), 200
+    return ok({'totalPets': int(total)})
 
 
 @admin_overview_bp.route('/total-users', methods=['GET'])
@@ -740,7 +739,7 @@ def total_users():
         print('Error counting users:', e)
         total = 0
 
-    return jsonify({'data': {'totalUsers': int(total)}}), 200
+    return ok({'totalUsers': int(total)})
 
 
 @admin_overview_bp.route('/appointments-today', methods=['GET'])
@@ -758,12 +757,10 @@ def appointments_today():
         print('Error counting today appointments:', e)
         total = 0
 
-    return jsonify({
-        'data': {
-            'date': today.isoformat(),
-            'totalAppointmentsToday': int(total)
-        }
-    }), 200
+    return ok({
+        'date': today.isoformat(),
+        'totalAppointmentsToday': int(total)
+    })
 
 admin_users_bp = Blueprint(
     'admin_users',
@@ -791,13 +788,11 @@ def total_revenue():
         print('Error calculating total revenue:', e)
         medical_revenue = hotel_revenue = total = 0
 
-    return jsonify({
-        'data': {
-            'medicalRevenue': int(medical_revenue),
-            'hotelRevenue': int(hotel_revenue),
-            'totalRevenue': int(total)
-        }
-    }), 200
+    return ok({
+        'medicalRevenue': int(medical_revenue),
+        'hotelRevenue': int(hotel_revenue),
+        'totalRevenue': int(total)
+    })
 
 
 @admin_overview_bp.route('/today-recent-slots', methods=['GET'])
@@ -822,8 +817,22 @@ def today_recent_slots():
             appt = slot.appointment
             report = slot.patient_report
 
+            # Try to get doctor from slot.doctor_slot -> doctor, fallback to appointment.doctor
+            doctor_name = None
+            try:
+                doctor_name = (
+                    slot.doctor_slot.doctor.doctor_name
+                    if slot.doctor_slot and slot.doctor_slot.doctor else None
+                )
+            except Exception:
+                doctor_name = None
+
+            if not doctor_name and appt and getattr(appt, 'doctor', None):
+                doctor_name = getattr(appt.doctor, 'doctor_name', None)
+
             data.append({
                 'slot_id': slot.slot_id,
+                'appointment_id': slot.appointment_id,
                 'check_in': slot.check_in.isoformat(),
                 'status': slot.status,
                 'user_name': (
@@ -834,6 +843,7 @@ def today_recent_slots():
                     report.pet.name
                     if report and report.pet else None
                 ),
+                'doctor_name': doctor_name,
                 'services': [
                     rs.service.name
                     for rs in getattr(report, 'report_services', [])
@@ -841,11 +851,11 @@ def today_recent_slots():
                 ] if report else []
             })
 
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print('Error fetching today recent slots:', e)
-        return jsonify({'data': []}), 200
+        return ok([])
 
 
 @admin_overview_bp.route('/pet-hotel-occupancy', methods=['GET'])
@@ -868,13 +878,11 @@ def pet_hotel_occupancy():
         print('Error calculating pet hotel occupancy:', e)
         total = current = 0
 
-    return jsonify({
-        'data': {
-            'current': int(current),
-            'total': int(total),
-            'ratio': f"{int(current)}/{int(total)}"
-        }
-    }), 200
+    return ok({
+        'current': int(current),
+        'total': int(total),
+        'ratio': f"{int(current)}/{int(total)}"
+    })
 
 
 
@@ -897,15 +905,13 @@ def reports_stats():
             models.PatientReport.status == 'Đã khám xong'
         ).scalar() or 0
 
-        return jsonify({
-            'data': {
-                'totalReports': total_reports,
-                'finishedReports': finished_reports
-            }
-        }), 200
+        return ok({
+            'totalReports': total_reports,
+            'finishedReports': finished_reports
+        })
     except Exception as e:
         print("Error fetching report stats:", e)
-        return jsonify({'data': {'totalReports': 0, 'finishedReports': 0}}), 200
+        return ok({'totalReports': 0, 'finishedReports': 0})
 
 # -------------------------------------------------
 # GET /recent: 3 hồ sơ gần nhất hôm nay
@@ -949,11 +955,11 @@ def recent_reports():
                 'check_out': slot.check_out.isoformat() if slot.check_out else None
             })
 
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print("Error fetching recent reports:", e)
-        return jsonify({'data': []}), 200
+        return ok([])
 
 # -------------------------------------------------
 # GET /list: Danh sách patient_report chi tiết
@@ -1031,11 +1037,11 @@ def list_reports():
                 'images': image_list
             })
 
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print("Error fetching patient reports:", e)
-        return jsonify({'data': []}), 200
+        return ok([])
 
 # -------------------------------------------------
 # POST /upload_image/<report_id>: Upload ảnh cho report
@@ -1068,12 +1074,12 @@ def upload_image(report_id):
         db.session.add(new_image)
         db.session.commit()
 
-        return jsonify({'message': 'Image uploaded', 'image_id': new_image.image_id}), 201
+        return ok({'image_id': new_image.image_id}, 201)
 
     except Exception as e:
         print("Error uploading image:", e)
         db.session.rollback()
-        return jsonify({'error': 'Failed to upload image'}), 500
+        return err('Failed to upload image', 500)
 
 # -------------------------------------------------
 # GET /download_report/<report_id>: Xuất report JSON
@@ -1144,11 +1150,11 @@ def download_report(report_id):
             'check_out': slot.check_out.isoformat() if slot.check_out else None
         }
 
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print("Error downloading report:", e)
-        return jsonify({'error': 'Failed to download report'}), 500
+        return err('Failed to download report', 500)
 
 # -------------------------------------------------
 # GET /download_pdf/<report_id>: Xuất report PDF
@@ -1238,17 +1244,15 @@ def pet_hotel_stats():
             models.PetHotel.check_out.is_(None)
         ).count()
 
-        return jsonify({
-            'data': {
-                'totalPethouse': total_houses,
-                'totalRevenue': float(total_revenue),
-                'stayingPets': staying_count
-            }
-        }), 200
+        return ok({
+            'totalPethouse': total_houses,
+            'totalRevenue': float(total_revenue),
+            'stayingPets': staying_count
+        })
 
     except Exception as e:
         print('Pet hotel stats error:', e)
-        return jsonify({'data': {}}), 200
+        return ok({})
 
 
 # -------------------------------------------------
@@ -1283,11 +1287,11 @@ def list_staying_pets():
             'pethouse': house.name
         } for hotel, pet, user, house in rows]
 
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print('Staying pets error:', e)
-        return jsonify({'data': []}), 200
+        return ok([])
 
 
 # -------------------------------------------------
@@ -1298,13 +1302,11 @@ def list_staying_pets():
 @check_role(['admin', 'superadmin'])
 def list_pethouses():
     houses = models.PetHouse.query.order_by(models.PetHouse.hotel_id.asc()).all()
-    return jsonify({
-        'data': [{
-            'hotel_id': h.hotel_id,
-            'name': h.name,
-            'price': float(h.price)
-        } for h in houses]
-    }), 200
+    return ok([{
+        'hotel_id': h.hotel_id,
+        'name': h.name,
+        'price': float(h.price)
+    } for h in houses])
 
 
 # -------------------------------------------------
@@ -1392,7 +1394,7 @@ def list_pet_hotel_registrations():
             d = datetime.fromisoformat(check_in_str).date()
             query = query.filter(func.date(models.PetHotel.check_in) == d)
         except ValueError:
-            return jsonify({'error': 'Invalid date'}), 400
+            return err('Invalid date', 400)
 
     if pet_name:
         query = query.filter(models.Pet.name.ilike(f"%{pet_name}%"))
@@ -1408,7 +1410,7 @@ def list_pet_hotel_registrations():
         'total': float(invoice.total)
     } for hotel, pet, house, invoice in rows]
 
-    return jsonify({'data': data}), 200
+    return ok(data)
 
 
 # -------------------------------------------------
@@ -1420,7 +1422,7 @@ def list_pet_hotel_registrations():
 def checkout_pet(petboard_id):
     hotel = models.PetHotel.query.get(petboard_id)
     if not hotel:
-        return jsonify({'error': 'Not found'}), 404
+        return err('Not found', 404)
 
     hotel.check_out = datetime.now()
     models.db.session.commit()
@@ -1519,11 +1521,11 @@ def list_pets():
                 'owner_name': f"{user.first_name} {user.last_name}"
             })
 
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print('Error listing pets:', e)
-        return jsonify({'data': []}), 200
+        return ok([])
 
 
 # -------------------------------------------------
@@ -1542,7 +1544,7 @@ def pet_detail(pet_id):
         pet = models.Pet.query.get(pet_id)
 
         if not pet:
-            return jsonify({'message': 'Pet not found'}), 404
+            return err('Pet not found', 404)
 
         owner = pet.owner
 
@@ -1614,11 +1616,11 @@ def list_services():
         services = query.all()
 
         data = [{'service_id': s.service_id, 'name': s.name, 'price': float(s.price)} for s in services]
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print('Error fetching services:', e)
-        return jsonify({'data': []}), 200
+        return ok([])
 
 # -------------------------------------------------
 # GET /medicines : Danh sách thuốc
@@ -1635,11 +1637,11 @@ def list_medicines():
         medicines = query.all()
 
         data = [{'medicine_id': m.medicine_id, 'name': m.name, 'price': float(m.price)} for m in medicines]
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print('Error fetching medicines:', e)
-        return jsonify({'data': []}), 200
+        return ok([])
 
 admin_slots_bp = Blueprint(
     'admin_slots',
@@ -1761,11 +1763,11 @@ def list_slots():
                 'doctor_name': doctor.doctor_name if doctor else None
             })
 
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print('Error fetching slots:', e)
-        return jsonify({'data': []}), 200
+        return ok([])
 
 
 
@@ -1984,11 +1986,113 @@ def list_users():
                 'pets': [pet.name for pet in getattr(user, 'pets', [])]
             })
 
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print('Error listing users:', e)
-        return jsonify({'data': []}), 200
+        return ok([])
+
+
+# -------------------------------------------------
+# PUT: Set user role
+# -------------------------------------------------
+@admin_users_bp.route('/<int:user_id>/role', methods=['PUT'])
+@authenticator
+@check_role(['admin', 'superadmin'])
+def set_user_role(user_id):
+    data = request.get_json() or {}
+    role = data.get('role')
+    if role not in ['admin', 'superadmin', 'customer']:
+        return err('Invalid role', 400)
+    user = models.User.query.get(user_id)
+    if not user:
+        return err('User not found', 404)
+    try:
+        user.user_type = role
+        models.db.session.commit()
+        return ok_message('Role updated')
+    except Exception as e:
+        print('Error setting role:', e)
+        models.db.session.rollback()
+        return err('Failed to set role')
+
+
+# -------------------------------------------------
+# PUT: Lock user
+# -------------------------------------------------
+@admin_users_bp.route('/<int:user_id>/lock', methods=['PUT'])
+@authenticator
+@check_role(['admin', 'superadmin'])
+def lock_user(user_id):
+    user = models.User.query.get(user_id)
+    if not user:
+        return err('User not found', 404)
+    try:
+        user.is_active = False
+        models.db.session.commit()
+        return ok_message('User locked')
+    except Exception as e:
+        print('Error locking user:', e)
+        models.db.session.rollback()
+        return err('Failed to lock user')
+
+
+# -------------------------------------------------
+# PUT: Unlock user
+# -------------------------------------------------
+@admin_users_bp.route('/<int:user_id>/unlock', methods=['PUT'])
+@authenticator
+@check_role(['admin', 'superadmin'])
+def unlock_user(user_id):
+    user = models.User.query.get(user_id)
+    if not user:
+        return err('User not found', 404)
+    try:
+        user.is_active = True
+        models.db.session.commit()
+        return ok_message('User unlocked')
+    except Exception as e:
+        print('Error unlocking user:', e)
+        models.db.session.rollback()
+        return err('Failed to unlock user')
+
+
+# -------------------------------------------------
+# POST: Tạo người dùng (Admin)
+# -------------------------------------------------
+@admin_users_bp.route('', methods=['POST'])
+@authenticator
+@check_role(['admin', 'superadmin'])
+def create_user():
+    data = request.get_json() or {}
+    first = data.get('firstName') or data.get('first_name') or data.get('first')
+    last = data.get('lastName') or data.get('last_name') or data.get('last')
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password')
+    user_type = data.get('user_type') or data.get('userType') or data.get('role') or 'customer'
+
+    if not all([first, last, email, password]):
+        return err('Missing required fields', 400)
+
+    # Basic validations
+    if '@' not in email or len(email) < 5:
+        return err('Invalid email', 400)
+    if len(password) < 6:
+        return err('Password must be at least 6 characters', 400)
+
+    if models.User.query.filter_by(email=email).first():
+        return err('Email already exists', 409)
+
+    try:
+        hashed = generate_password_hash(password)
+        user = models.User(first_name=first, last_name=last, email=email, password=hashed, user_type=user_type)
+        models.db.session.add(user)
+        models.db.session.commit()
+        return ok({'user': user.to_dict()}, 201)
+    except Exception as e:
+        print('Error creating admin user:', e)
+        models.db.session.rollback()
+        return err('Failed to create user', 500)
 
 
 # -------------------------------------------------
@@ -2007,7 +2111,7 @@ def search_users():
     q = request.args.get('q', '').strip()
 
     if not q:
-        return jsonify({'data': []}), 200
+        return ok([])
 
     try:
         search = f"%{q.lower()}%"
@@ -2037,11 +2141,11 @@ def search_users():
                 'pets': [pet.name for pet in getattr(user, 'pets', [])]
             })
 
-        return jsonify({'data': data}), 200
+        return ok(data)
 
     except Exception as e:
         print('Error searching users:', e)
-        return jsonify({'data': []}), 200
+        return ok([])
 
 
 # -------------------------------------------------
@@ -2059,203 +2163,14 @@ def delete_user(user_id):
         user = models.User.query.get(user_id)
 
         if not user:
-            return jsonify({
-                'message': 'User not found'
-            }), 404
+            return err('User not found', 404)
 
         models.db.session.delete(user)
         models.db.session.commit()
 
-        return jsonify({
-            'message': 'User deleted successfully'
-        }), 200
+        return ok_message('User deleted successfully')
 
     except Exception as e:
         print('Error deleting user:', e)
         models.db.session.rollback()
-        return jsonify({
-            'message': 'Failed to delete user'
-        }), 500
-
-# @admin_bp.route('/statistics/appointments', methods=['GET'])
-# @authenticator
-# @check_role(['admin','superadmin'])
-# def stats_appointments():
-#     try:
-#         total = Appointment.query.count() or 0
-#     except Exception:
-#         total = 0
-#     return jsonify({'data': {'total': int(total)}}), 200
-
-
-# @admin_bp.route('/statistics/revenue', methods=['GET'])
-# @authenticator
-# @check_role(['admin','superadmin'])
-# def stats_revenue():
-#     # No payments table yet — return 0
-#     total = 0
-#     return jsonify({'data': {'totalRevenue': total}}), 200
-
-
-# @admin_bp.route('/statistics/patients', methods=['GET'])
-# @authenticator
-# @check_role(['admin','superadmin'])
-# def stats_patients():
-#     try:
-#         total = User.query.count() or 0
-#     except Exception:
-#         total = 0
-#     return jsonify({'data': {'patientCount': int(total)}}), 200
-
-
-# @admin_bp.route('/statistics/services', methods=['GET'])
-# @authenticator
-# @check_role(['admin','superadmin'])
-# def stats_services():
-#     try:
-#         total = Service.query.count() or 0
-#     except Exception:
-#         total = 0
-#     return jsonify({'data': {'count': int(total)}}), 200
-
-
-# # ----------------------
-# # Admin resource endpoints
-# # ----------------------
-# from ..models import Doctor, Pet, Appointment, User
-
-# @admin_bp.route('/doctors', methods=['GET'])
-# @authenticator
-# @check_role(['admin','superadmin'])
-# def list_doctors_admin():
-#     """Return all doctors as JSON (no passwords)."""
-#     doctors = Doctor.query.order_by(Doctor.doctor_id).all()
-#     data = [d.to_dict() for d in doctors]
-#     return jsonify({'data': data}), 200
-
-
-# @admin_bp.route('/pets', methods=['GET'])
-# @authenticator
-# @check_role(['admin','superadmin'])
-# def list_pets_admin():
-#     """Return all pets and basic owner info."""
-#     pets = Pet.query.order_by(Pet.pet_id).all()
-#     data = []
-#     for p in pets:
-#         item = p.to_dict()
-#         owner = getattr(p, 'owner', None)
-#         if owner:
-#             item['owner'] = {'user_id': owner.user_id, 'first_name': owner.first_name, 'last_name': owner.last_name, 'email': owner.email}
-#         data.append(item)
-#     return jsonify({'data': data}), 200
-
-
-# @admin_bp.route('/appointments', methods=['GET'])
-# @authenticator
-# @check_role(['admin','superadmin'])
-# def list_appointments_admin():
-#     """Return appointments with related user/doctor/pet summaries."""
-#     appts = Appointment.query.order_by(Appointment.created_at.desc()).all()
-#     data = []
-#     for a in appts:
-#         item = a.to_dict()
-#         # attach basic user info
-#         user = getattr(a, 'user', None)
-#         if user:
-#             item['user'] = {'user_id': user.user_id, 'first_name': user.first_name, 'last_name': user.last_name, 'email': user.email}
-#         # attach doctor summary
-#         doc = getattr(a, 'doctor', None)
-#         if doc:
-#             item['doctor'] = {'doctor_id': doc.doctor_id, 'doctor_name': doc.doctor_name, 'email': getattr(doc, 'email', None)}
-#         # attach pet summary
-#         pet = getattr(a, 'pet', None)
-#         if pet:
-#             item['pet'] = pet.to_dict()
-#         data.append(item)
-#     return jsonify({'data': data}), 200
-
-
-# # Admin: list services (full objects) — used by the admin Services page
-# @admin_bp.route('/services', methods=['GET'])
-# @authenticator
-# @check_role(['admin','superadmin'])
-# def list_services_admin():
-#     try:
-#         services = Service.query.order_by(Service.service_id).all()
-#         data = [s.to_dict() for s in services]
-#         return jsonify({'data': data}), 200
-#     except Exception as e:
-#         # Log and return empty list on error
-#         print('Error fetching services:', e)
-#         return jsonify({'data': []}), 200
-
-
-# # Admin: list invoices (join to patient report/pet/owner)
-# from ..models import Invoice, PatientReport
-
-# @admin_bp.route('/invoices', methods=['GET'])
-# @authenticator
-# @check_role(['admin','superadmin'])
-# def list_invoices_admin():
-#     try:
-#         invoices = Invoice.query.order_by(Invoice.invoice_id.desc()).all()
-#         data = []
-#         for inv in invoices:
-#             item = inv.to_dict()
-#             pr = getattr(inv, 'patient_report', None)
-#             if pr:
-#                 pr_obj = pr.to_dict()
-#                 pet = getattr(pr, 'pet', None)
-#                 if pet:
-#                     pr_obj['pet'] = pet.to_dict()
-#                     owner = getattr(pet, 'owner', None)
-#                     if owner:
-#                         pr_obj['owner'] = {'user_id': owner.user_id, 'first_name': owner.first_name, 'last_name': owner.last_name, 'email': owner.email}
-#                 item['patient_report'] = pr_obj
-#             data.append(item)
-#         return jsonify({'data': data}), 200
-#     except Exception as e:
-#         print('Error fetching invoices:', e)
-#         return jsonify({'data': []}), 200
-
-
-# # Admin: pet hotel bookings and rooms
-# from ..models import PetHotel, PetHouse, InvoiceHotel
-
-# @admin_bp.route('/hotel/bookings', methods=['GET'])
-# @authenticator
-# @check_role(['admin','superadmin'])
-# def list_hotel_bookings_admin():
-#     try:
-#         bookings = PetHotel.query.order_by(PetHotel.check_in.desc()).all()
-#         data = []
-#         for b in bookings:
-#             item = b.to_dict()
-#             pet = getattr(b, 'pet', None)
-#             if pet:
-#                 item['pet'] = pet.to_dict()
-#                 owner = getattr(pet, 'owner', None)
-#                 if owner:
-#                     item['owner'] = {'user_id': owner.user_id, 'first_name': owner.first_name, 'last_name': owner.last_name, 'email': owner.email}
-#             # attach invoice if exists
-#             inv = getattr(b, 'invoice_hotel', None)
-#             if inv:
-#                 item['invoice'] = inv.to_dict()
-#             data.append(item)
-#         return jsonify({'data': data}), 200
-#     except Exception as e:
-#         print('Error fetching hotel bookings:', e)
-#         return jsonify({'data': []}), 200
-
-
-# @admin_bp.route('/hotel/rooms', methods=['GET'])
-# @authenticator
-# @check_role(['admin','superadmin'])
-# def list_hotel_rooms_admin():
-#     try:
-#         rooms = PetHouse.query.order_by(PetHouse.hotel_id).all()
-#         data = [r.to_dict() for r in rooms]
-#         return jsonify({'data': data}), 200
-#     except Exception as e:
-#         print('Error fetching hotel rooms:', e)
-#         return jsonify({'data': []}), 200
+        return err('Failed to delete user', 500)

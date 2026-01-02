@@ -6,7 +6,7 @@ export default function Overview() {
   const [stats, setStats] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [quickStats] = useState({
+  const [quickStats, setQuickStats] = useState({
     newPatientsToday: 0,
     avgExamTime: '0 min',
     petHotelGuests: 0,
@@ -22,6 +22,14 @@ export default function Overview() {
         ]);
         setStats(statsData);
         setAppointments(appointmentsData);
+
+        // Update quick stats with total pets if available
+        try {
+          const totalPets = (statsData.find(s => s.title && s.title.includes('Tổng thú cưng')) || {}).value || 0;
+          setQuickStats(q => ({ ...q, totalPets }));
+        } catch (e) {
+          // ignore
+        }
       } catch (error) {
         console.error('Error fetching overview data:', error);
         // Set empty arrays to show empty state
