@@ -923,19 +923,23 @@ export const api = {
 
   getMedicalRecords: async () => {
     try {
-      const res = await request('/admin/patient_reports/list');
+      const res = await request('/admin/patient_reports/summary');
       const data = res?.data || [];
-      if (data.length === 0) return [];
       return data.map(r => ({
-        petName: r.pet.name,
-        ownerName: r.user.user_name,
+        reportId: r.report_id,
+        petName: r.pet_name,
+        ownerName: r.user_name,
         doctorName: r.doctor_name,
-        services: r.services,
-        medicines: r.medicines,
-        symptoms: r.symptoms,
-        diseases: r.diseases,
         status: r.status,
-        reportDate: r.check_in
+        // Add other fields if available, else defaults
+        serviceType: r.serviceType || 'Medical Service',
+        reportDate: r.check_in ? new Date(r.check_in).toLocaleDateString() : '',
+        reportTime: r.check_in ? new Date(r.check_in).toLocaleTimeString() : '',
+        petSpecies: r.petSpecies || '',
+        petBreed: r.petBreed || '',
+        petAge: r.petAge || '',
+        ownerId: r.ownerId || '',
+        petId: r.petId || ''
       }));
     } catch (err) {
       console.error('api.getMedicalRecords error', err);
@@ -959,42 +963,32 @@ export const api = {
 
   getMedicalRecordByReportId: async (reportId) => {
     try {
-      // Fetch the full list then find the report by id (some backends expose /list only)
-      const res = await request('/admin/patient_reports/list', { auth: true });
-      const list = res?.data || [];
-      const item = list.find(r => String(r.report_id || r.reportId) === String(reportId));
-      if (!item) return null;
+      const res = await request(`/admin/patient_reports/detail/${reportId}`);
+      const data = res?.data || null;
+      if (!data) return null;
 
-      const pet = item.pet || {};
-      const user = item.user || {};
-      const services = item.services || [];
-      const medicines = item.medicines || [];
-
+      // Assuming the structure matches what the UI expects
       return {
-        reportId: item.report_id || item.reportId,
-        serviceType: services[0] || 'Medical Service',
-        reportDate: item.check_in || item.check_in_iso || item.reportDate || null,
-        reportTime: item.check_in ? new Date(item.check_in).toLocaleTimeString() : (item.reportTime || ''),
-        petId: pet.pet_id || pet.petId,
-        petName: pet.name || '',
-        petSpecies: pet.species || '',
-        petBreed: pet.breed || '',
-        petAge: pet.age || '',
-        ownerId: user.user_id || user.userId,
-        ownerName: user.user_name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
-        doctorName: item.doctor_name || '',
-        services: services,
-        medicines: medicines,
-        symptoms: Array.isArray(item.symptoms) ? item.symptoms : (item.symptoms || ''),
-        diseases: Array.isArray(item.diseases) ? item.diseases : (item.diseases || ''),
-        status: item.status || '',
-        images: (item.images || []).map(i => (i.image_url ? i.image_url : (typeof i === 'string' ? i : null))).filter(Boolean),
-        // fallback fields used in UI
-        treatmentDetails: services,
-        medicalHistory: medicines.map(m => (m.name ? m.name : '')),
-        dosage: item.dosage || '',
-        frequency: item.frequency || '',
-        medicalCondition: item.medicalCondition || ''
+        reportId: data.reportId || data.report_id,
+        serviceType: data.serviceType || data.services?.[0] || 'Medical Service',
+        reportDate: data.reportDate || data.check_in,
+        reportTime: data.reportTime || (data.check_in ? new Date(data.check_in).toLocaleTimeString() : ''),
+        petId: data.petId || data.pet?.pet_id,
+        petName: data.petName || data.pet?.name,
+        petSpecies: data.petSpecies || data.pet?.species,
+        petBreed: data.petBreed || data.pet?.breed,
+        petAge: data.petAge || data.pet?.age,
+        ownerId: data.ownerId || data.user?.user_id,
+        ownerName: data.ownerName || data.user?.user_name || `${data.user?.first_name || ''} ${data.user?.last_name || ''}`.trim(),
+        doctorName: data.doctorName || data.doctor_name,
+        symptoms: data.symptoms,
+        treatmentDetails: data.treatmentDetails || data.services || [],
+        medicalHistory: data.medicalHistory || data.medicines?.map(m => m.name) || [],
+        dosage: data.dosage,
+        frequency: data.frequency,
+        medicalCondition: data.medicalCondition,
+        images: data.images || [],
+        status: data.status
       };
     } catch (err) {
       console.error('api.getMedicalRecordByReportId error', err);
@@ -1026,8 +1020,12 @@ export async function getTodayAppointments() {
 
 export async function getReportsStats() {
   try {
-    const res = await request('/admin/patient_reports/stats', { auth: true });
-    return res?.data || { totalReports: 0, finishedReports: 0 };
+    const res = await request('/admin/reports/summary', { auth: true });
+    const data = res?.data || {};
+    return {
+      totalReports: data.stats?.totalReports || 0,
+      finishedReports: data.stats?.finishedReports || 0,
+    };
   } catch (err) {
     console.error('getReportsStats error', err);
     return { totalReports: 0, finishedReports: 0 };
@@ -1135,8 +1133,24 @@ export async function getVisits() {
 
 export async function getMedicalRecords() {
   try {
-    const res = await request('/admin/patient_reports/list', { auth: true });
-    return res?.data || [];
+    const res = await request('/admin/patient_reports/summary', { auth: true });
+    const data = res?.data || [];
+    return data.map(r => ({
+      reportId: r.report_id,
+      petName: r.pet_name,
+      ownerName: r.user_name,
+      doctorName: r.doctor_name,
+      status: r.status,
+      // Add other fields if available, else defaults
+      serviceType: r.serviceType || 'Medical Service',
+      reportDate: r.check_in ? new Date(r.check_in).toLocaleDateString() : '',
+      reportTime: r.check_in ? new Date(r.check_in).toLocaleTimeString() : '',
+      petSpecies: r.petSpecies || '',
+      petBreed: r.petBreed || '',
+      petAge: r.petAge || '',
+      ownerId: r.ownerId || '',
+      petId: r.petId || ''
+    }));
   } catch (err) {
     console.error('getMedicalRecords error', err);
     return [];
@@ -1145,40 +1159,32 @@ export async function getMedicalRecords() {
 
 export async function getMedicalRecordByReportId(reportId) {
   try {
-    const res = await request('/admin/patient_reports/list', { auth: true });
-    const list = res?.data || [];
-    const item = list.find(r => String(r.report_id || r.reportId) === String(reportId));
-    if (!item) return null;
+    const res = await request(`/admin/patient_reports/detail/${reportId}`, { auth: true });
+    const data = res?.data || null;
+    if (!data) return null;
 
-    const pet = item.pet || {};
-    const user = item.user || {};
-    const services = item.services || [];
-    const medicines = item.medicines || [];
-
+    // Assuming the structure matches what the UI expects
     return {
-      reportId: item.report_id || item.reportId,
-      serviceType: services[0] || 'Medical Service',
-      reportDate: item.check_in || item.check_in_iso || item.reportDate || null,
-      reportTime: item.check_in ? new Date(item.check_in).toLocaleTimeString() : (item.reportTime || ''),
-      petId: pet.pet_id || pet.petId,
-      petName: pet.name || '',
-      petSpecies: pet.species || '',
-      petBreed: pet.breed || '',
-      petAge: pet.age || '',
-      ownerId: user.user_id || user.userId,
-      ownerName: user.user_name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
-      doctorName: item.doctor_name || '',
-      services: services,
-      medicines: medicines,
-      symptoms: Array.isArray(item.symptoms) ? item.symptoms : (item.symptoms || ''),
-      diseases: Array.isArray(item.diseases) ? item.diseases : (item.diseases || ''),
-      status: item.status || '',
-      images: (item.images || []).map(i => (i.image_url ? i.image_url : (typeof i === 'string' ? i : null))).filter(Boolean),
-      treatmentDetails: services,
-      medicalHistory: medicines.map(m => (m.name ? m.name : '')),
-      dosage: item.dosage || '',
-      frequency: item.frequency || '',
-      medicalCondition: item.medicalCondition || ''
+      reportId: data.reportId || data.report_id,
+      serviceType: data.serviceType || data.services?.[0] || 'Medical Service',
+      reportDate: data.reportDate || data.check_in,
+      reportTime: data.reportTime || (data.check_in ? new Date(data.check_in).toLocaleTimeString() : ''),
+      petId: data.petId || data.pet?.pet_id,
+      petName: data.petName || data.pet?.name,
+      petSpecies: data.petSpecies || data.pet?.species,
+      petBreed: data.petBreed || data.pet?.breed,
+      petAge: data.petAge || data.pet?.age,
+      ownerId: data.ownerId || data.user?.user_id,
+      ownerName: data.ownerName || data.user?.user_name || `${data.user?.first_name || ''} ${data.user?.last_name || ''}`.trim(),
+      doctorName: data.doctorName || data.doctor_name,
+      symptoms: data.symptoms,
+      treatmentDetails: data.treatmentDetails || data.services || [],
+      medicalHistory: data.medicalHistory || data.medicines?.map(m => m.name) || [],
+      dosage: data.dosage,
+      frequency: data.frequency,
+      medicalCondition: data.medicalCondition,
+      images: data.images || [],
+      status: data.status
     };
   } catch (err) {
     console.error('getMedicalRecordByReportId (named) error', err);

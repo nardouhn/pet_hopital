@@ -71,7 +71,7 @@ export default function ServicesPage() {
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-teal-300 hover:bg-teal-50 transition-all cursor-pointer"
                 >
                   <h3 className="font-medium text-gray-900">{service.name}</h3>
-                  <span className="font-semibold text-teal-600">${service.price}</span>
+                  <span className="font-semibold text-teal-600">{service.price}đ</span>
                 </div>
               ))}
             </div>
@@ -93,7 +93,7 @@ export default function ServicesPage() {
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-blue-300 hover:bg-blue-50 transition-all cursor-pointer"
                 >
                   <h3 className="font-medium text-gray-900">{medication.name}</h3>
-                  <span className="font-semibold text-blue-600">${medication.pricePerUnit}</span>
+                  <span className="font-semibold text-blue-600">{medication.pricePerUnit}đ</span>
                 </div>
               ))}
             </div>

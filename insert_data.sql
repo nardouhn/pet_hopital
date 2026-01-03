@@ -132,6 +132,28 @@ WHERE u.user_type = 'customer'
 ORDER BY random()
 LIMIT 1000;
 
+
+INSERT INTO appointment (booking_date, status, user_id)
+SELECT
+    '2026-01-03'::date AS booking_date,
+    'Đặt lịch hẹn thành công'::appointment_status_enum AS status,
+    u.user_id
+FROM users u
+WHERE u.user_type = 'customer'
+ORDER BY random()
+LIMIT 50;
+
+-- Thêm pet_id cho appointment mới
+UPDATE appointment a
+SET pet_id = (
+    SELECT p.pet_id
+    FROM pets p
+    WHERE p.user_id = a.user_id
+    ORDER BY random()
+    LIMIT 1
+)
+WHERE a.pet_id IS NULL;
+
 -- 2. Cập nhật trạng thái appointment dựa vào doctor_slot
 UPDATE appointment a
 SET status = CASE

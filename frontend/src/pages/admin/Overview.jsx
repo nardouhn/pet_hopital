@@ -209,9 +209,9 @@ export default function Overview() {
                   }}
                 />
               </div>
-              <p className="text-xs mt-2 opacity-90">
+              {/* <p className="text-xs mt-2 opacity-90">
                 of {quickStats.totalPets} total pets
-              </p>
+              </p> */}
             </div>
           </div>
         </div>

@@ -18,8 +18,8 @@ export default function VisitsPage() {
   const defaultDate = new Date().toISOString().slice(0,10);
   const [selectedDate, setSelectedDate] = useState(defaultDate);
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedService, setSelectedService] = useState("all");
-  const [selectedDoctor, setSelectedDoctor] = useState("all");
+  // const [selectedService, setSelectedService] = useState("all");
+  // const [selectedDoctor, setSelectedDoctor] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
 
   // normalize various backend date formats to YYYY-MM-DD
@@ -84,13 +84,13 @@ export default function VisitsPage() {
     const visitIso = toIsoDate(visit.date || visit.booking_date || visit.bookingDate);
     const matchesDate = selectedDate === "all" || (visitIso && visitIso === selectedDate);
     const matchesStatus = selectedStatus === "all" || visit.status === selectedStatus;
-    const matchesService = selectedService === "all" || visit.service === selectedService;
-    const matchesDoctor = selectedDoctor === "all" || visit.doctor === selectedDoctor;
+    // const matchesService = selectedService === "all" || visit.service === selectedService;
+    // const matchesDoctor = selectedDoctor === "all" || visit.doctor === selectedDoctor;
     const pet = (visit.petName || visit.pet_name || visit.pet || '').toString();
     const owner = (visit.ownerName || visit.owner_name || visit.owner || '').toString();
     const matchesSearch = searchTerm === "" || pet.toLowerCase().includes(searchTerm.toLowerCase()) || owner.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesDate && matchesStatus && matchesService && matchesDoctor && matchesSearch;
+    return matchesDate && matchesStatus /* && matchesService && matchesDoctor */ && matchesSearch;
   });
 
   const handleApplyFilter = () => {
@@ -101,8 +101,8 @@ export default function VisitsPage() {
   const handleReset = () => {
     setSelectedDate("");
     setSelectedStatus("all");
-    setSelectedService("all");
-    setSelectedDoctor("all");
+    // setSelectedService("all");
+    // setSelectedDoctor("all");
     setSearchTerm("");
   };
 
@@ -187,7 +187,7 @@ export default function VisitsPage() {
 
       {/* Filters Section */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* Date */}
           <div>
             <label className="block text-sm text-gray-600 mb-2">Date</label>
@@ -216,6 +216,7 @@ export default function VisitsPage() {
           </div>
 
           {/* Service */}
+          {/*
           <div>
             <label className="block text-sm text-gray-600 mb-2">Service</label>
             <select
@@ -231,8 +232,10 @@ export default function VisitsPage() {
               <option value="Follow-up">Follow-up</option>
             </select>
           </div>
+          */}
 
           {/* Doctor */}
+          {/*
           <div>
             <label className="block text-sm text-gray-600 mb-2">Doctor</label>
             <select
@@ -246,6 +249,7 @@ export default function VisitsPage() {
               <option value="Dr. Williams">Dr. Williams</option>
             </select>
           </div>
+          */}
 
           {/* Search Pet/Owner */}
           <div>
@@ -301,15 +305,24 @@ export default function VisitsPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
+                {/* SLOT ID */}
+                {/*
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   SLOT ID
                 </th>
+                */}
+                {/* CHECK-IN */}
+                {/*
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   CHECK-IN
                 </th>
+                */}
+                {/* CHECK-OUT */}
+                {/*
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   CHECK-OUT
                 </th>
+                */}
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   PET
                 </th>
@@ -319,9 +332,12 @@ export default function VisitsPage() {
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   SERVICE
                 </th>
+                {/* DOCTOR */}
+                {/*
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   DOCTOR
                 </th>
+                */}
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   STATUS
                 </th>
@@ -334,7 +350,7 @@ export default function VisitsPage() {
               {filteredVisits.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="9"
+                    colSpan="6"
                     className="px-6 py-16 text-center text-gray-500"
                   >
                     No visits found
@@ -347,25 +363,31 @@ export default function VisitsPage() {
                     className="hover:bg-gray-50 transition-colors"
                   >
                     {/* Slot ID */}
+                    {/*
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-medium text-gray-900">
                         {visit.slotId}
                       </span>
                     </td>
+                    */}
 
                     {/* Check-in */}
+                    {/*
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-teal-600 font-medium">
                         {visit.checkIn}
                       </span>
                     </td>
+                    */}
 
                     {/* Check-out */}
+                    {/*
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-gray-600">
                         {visit.checkOut}
                       </span>
                     </td>
+                    */}
 
                     {/* Pet */}
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -396,11 +418,13 @@ export default function VisitsPage() {
                     </td>
 
                     {/* Doctor */}
+                    {/*
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-gray-600">
                         {visit.doctor}
                       </span>
                     </td>
+                    */}
 
                     {/* Status */}
                     <td className="px-6 py-4 whitespace-nowrap">

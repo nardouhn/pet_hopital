@@ -15,7 +15,6 @@ export default function AppointmentsPage() {
   const defaultDate = new Date().toISOString().slice(0,10);
   const [selectedDate, setSelectedDate] = useState(defaultDate);
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedService, setSelectedService] = useState("all");
   const [appointmentDate, setAppointmentDate] = useState("");
 
   useEffect(() => {
@@ -49,23 +48,23 @@ export default function AppointmentsPage() {
     }
   };
 
-  // Calculate stats (based on selectedDate)
-  const todayIso = selectedDate || new Date().toISOString().slice(0,10);
+  // Calculate stats (always for today)
+  const todayIso = new Date().toISOString().slice(0,10);
   const todayAppointments = appointments.filter((a) => {
     const iso = toIsoDate(a.date || a.booking_date || a.bookingDate);
     return iso === todayIso;
   });
-  const confirmedCount = appointments.filter(
+  const confirmedCount = todayAppointments.filter(
     (a) => a.status === "Đã nhận" || a.status === "Approved" || a.status === "Đặt lịch hẹn thành công"
   ).length;
-  const pendingCount = appointments.filter(
+  const pendingCount = todayAppointments.filter(
     (a) =>
-      a.status === "Pending" ||
+      a.status === "Pending" || a.status === "Đang chờ xác nhận" ||
       a.status === "Waiting" ||
       a.status === "Đã xử lí"
   ).length;
-  const canceledCount = appointments.filter(
-    (a) => a.status === "Canceled"
+  const canceledCount = todayAppointments.filter(
+    (a) => a.status === "Canceled" || a.status === "Đã hủy lịch hẹn"
   ).length;
 
   // Filter appointments
@@ -74,10 +73,9 @@ export default function AppointmentsPage() {
     const matchesDate = !selectedDate || selectedDate === "all" || (apptIso && apptIso === selectedDate);
     const matchesStatus =
       selectedStatus === "all" || appointment.status === selectedStatus;
-    const matchesService =
-      selectedService === "all" || appointment.service === selectedService;
+    const matchesAppointmentDate = !appointmentDate || apptIso === appointmentDate;
 
-    return matchesDate && matchesStatus && matchesService;
+    return matchesDate && matchesStatus && matchesAppointmentDate;
   });
 
   const getStatusColor = (status) => {
@@ -173,7 +171,7 @@ export default function AppointmentsPage() {
           </h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Booking Date */}
           <div>
             <label className="block text-sm text-gray-600 mb-2">
@@ -203,29 +201,13 @@ export default function AppointmentsPage() {
             </select>
           </div>
 
-          {/* All Services */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-2">Service</label>
-            <select
-              value={selectedService}
-              onChange={(e) => setSelectedService(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-transparent"
-            >
-              <option value="all">All Services</option>
-              <option value="Khám tổng quát">Khám tổng quát</option>
-              <option value="Check-up">Check-up</option>
-              <option value="Grooming">Grooming</option>
-              <option value="Follow-up">Follow-up</option>
-            </select>
-          </div>
-
           {/* Appointment Date */}
           <div>
             <label className="block text-sm text-gray-600 mb-2">
               Appointment date
             </label>
             <input
-              type="text"
+              type="date"
               value={appointmentDate}
               onChange={(e) => setAppointmentDate(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-transparent"
@@ -283,14 +265,6 @@ export default function AppointmentsPage() {
                         </p>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Service */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 mb-1">Service</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {appointment.service}
-                    </p>
                   </div>
 
                   {/* Status */}
