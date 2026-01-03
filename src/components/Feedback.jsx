@@ -10,11 +10,11 @@ import imgDog from "@/assets/Rectangle 4.png";
 const Feedback = () => {
   const [reviews, setReviews] = useState([]);
   const [form, setForm] = useState({
-    name: "",
+    userName: "",
     petName: "",
-    breed: "",
-    feedback: "",
+    petType: "",
     rating: 5,
+    comment: "",
   });
 
   useEffect(() => {
@@ -28,7 +28,7 @@ const Feedback = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.name || !form.petName || !form.breed || !form.feedback) {
+    if (!form.userName || !form.petName || !form.petType || !form.comment) {
       toast.error("Vui lòng điền đầy đủ thông tin!");
       return;
     }
@@ -37,11 +37,18 @@ const Feedback = () => {
     toast.success("Gửi feedback thành công!");
 
     setForm({
-      name: "",
+      userName: "",
       petName: "",
-      breed: "",
-      feedback: "",
+      petType: "",
       rating: 5,
+      comment: "",
+    });
+  };
+
+  const handleRatingChange = (rating) => {
+    setForm({
+      ...form,
+      rating,
     });
   };
 
@@ -147,73 +154,92 @@ const Feedback = () => {
             {/* Content */}
             <div className="relative z-10">
               {/* Row 1 */}
-              <div className="grid md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="label">Your Name *</label>
-                  <input
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    placeholder="Your name"
-                    className={inputStyle(form.name)}
-                  />
-                </div>
+              <div className="mb-4">
+                <label className="flex items-center gap-2 text-sm  mb-2">
+                  <span>👤</span>
+                  <span>Your Name *</span>
+                </label>
+                <input
+                  type="text"
+                  name="userName"
+                  value={form.userName}
+                  onChange={handleChange}
+                  placeholder="Your name"
+                  className={inputStyle(form.userName)}
+                  required
+                />
+              </div>
 
+              {/* Pet's Name and Breed */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="label">Pet’s Name *</label>
+                  <label className="text-sm mb-2 block">Pet's Name *</label>
                   <input
+                    type="text"
                     name="petName"
                     value={form.petName}
                     onChange={handleChange}
-                    placeholder="Pet’s name"
+                    placeholder="pet's name"
                     className={inputStyle(form.petName)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm  mb-2 block">Breed *</label>
+                  <input
+                    type="text"
+                    name="petType"
+                    value={form.petType}
+                    onChange={handleChange}
+                    placeholder="Dog, Cat,..."
+                    className={inputStyle(form.petType)}
+                    required
                   />
                 </div>
               </div>
 
-              {/* Row 2 */}
-              <div className="grid md:grid-cols-2 gap-6 mb-6 items-end">
-                <div>
-                  <label className="label">Breed *</label>
-                  <input
-                    name="breed"
-                    value={form.breed}
-                    onChange={handleChange}
-                    placeholder="Dog, Cat..."
-                    className={inputStyle(form.breed)}
-                  />
-                </div>
+              {/* Rating */}
+              {/* Rating */}
+              <div className="mb-4 relative">
+                <label className="absolute left-0 top-0 text-sm flex items-center gap-2">
+                  <span>📧</span>
+                  <span>Rating:</span>
+                </label>
 
-                {/* Rating */}
-                <div>
-                  <label className="label">Rating:</label>
-                  <div className="flex gap-2 mt-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
+                <div className="flex gap-2 pt-6">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => handleRatingChange(star)}
+                      className="focus:outline-none"
+                    >
                       <Star
-                        key={star}
-                        onClick={() => setForm({ ...form, rating: star })}
-                        className={`w-6 h-6 cursor-pointer transition ${
+                        className={`size-8 transition-all ${
                           star <= form.rating
-                            ? "text-yellow-400"
+                            ? "text-yellow-400 fill-yellow-400"
                             : "text-gray-300"
                         }`}
-                        fill={star <= form.rating ? "gold" : "none"}
                       />
-                    ))}
-                  </div>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Feedback */}
-              <div className="mb-8">
-                <label className="label">Your Feedback *</label>
+              {/* Your Feedback */}
+              <div className="mb-6">
+                <label className="flex items-center gap-2 text-sm text-gray-900 mb-2">
+                  <span>💬</span>
+                  <span>Your Feedback *</span>
+                </label>
                 <textarea
-                  name="feedback"
-                  value={form.feedback}
+                  name="comment"
+                  value={form.comment}
                   onChange={handleChange}
-                  rows={5}
                   placeholder="Share your experience or suggestions..."
-                  className={inputStyle(form.feedback)}
+                  rows="5"
+                  className={inputStyle(form.comment)}
+                  required
                 />
               </div>
 
