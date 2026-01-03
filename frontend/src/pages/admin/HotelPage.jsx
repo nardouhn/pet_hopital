@@ -3,7 +3,7 @@ import { Home, Calendar, DollarSign, Users, Plus, CalendarCheck, ArrowLeft } fro
 import { createPortal } from 'react-dom';
 import { api, getHotelRooms as fetchHotelRooms, getHotelBookings as fetchHotelBookings } from '@/api/mockApi';
 import svgPaths from '@/assets/svg-m4bne1t8yn';
-
+import toast from "react-hot-toast";
 
 
 export default function HotelPage() {
@@ -42,6 +42,19 @@ export default function HotelPage() {
 
     return () => { mounted = false; };
   }, []);
+
+  const roomPrices = [
+    { name: 'Phòng Tiêu Chuẩn - Thú nhỏ', price: 120000 },
+    { name: 'Phòng Tiêu Chuẩn - Thú vừa', price: 150000 },
+    { name: 'Phòng Tiêu Chuẩn - Thú lớn', price: 180000 },
+    { name: 'Phòng Thoáng Mát Có Quạt', price: 200000 },
+    { name: 'Phòng Điều Hòa Cơ Bản', price: 250000 },
+    { name: 'Phòng Điều Hòa Cao Cấp', price: 300000 },
+    { name: 'Phòng VIP Riêng Biệt', price: 350000 },
+    { name: 'Phòng VIP Có Camera Giám Sát', price: 400000 },
+    { name: 'Phòng Luxury - Không Gian Rộng', price: 450000 },
+    { name: 'Phòng Suite Đặc Biệt 5 Sao', price: 500000 }
+  ];
 
   // Calculate statistics from backend data
   const currentBookings = bookings.filter(b => !b.checkOut);
@@ -107,7 +120,7 @@ export default function HotelPage() {
       ownerName: formData.ownerEmail,
       bookingType: 'current',
       checkIn: checkInFormatted,
-      checkOut: checkOutFormatted,
+      checkOut: null,
       roomNumber: roomNumber,
       price: price,
       roomType: formData.roomType,
@@ -317,26 +330,28 @@ export default function HotelPage() {
         {/* Pets in Clinic - Left Column */}
         <div className="bg-white rounded-lg p-6 shadow-sm border border-[#e5e7eb]">
           <h2 className="text-lg font-bold text-[#1f2937] mb-6">Đang thuê</h2>
-          <div className="space-y-4">
+
+          {/* Scrollable area */}
+          <div className="space-y-4 max-h-[620px] overflow-y-auto pr-2">
             {currentBookings.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">Không có thú cưng nào</p>
+              <p className="text-sm text-gray-500 text-center py-8">
+                Không có thú cưng nào
+              </p>
             ) : (
-              currentBookings.slice(0, 5).map((booking, idx) => (
+              currentBookings.map((booking, idx) => (
                 <div
                   key={`${booking.petName || 'b'}-${idx}`}
                   className="border border-[#e5e7eb] rounded-lg p-4 relative hover:shadow-md transition-shadow"
                 >
-                  {/* Pet Name and Owner */}
                   <h3 className="font-bold text-[#1f2937] text-sm mb-2">
                     {booking.petName} - {booking.user_name || booking.ownerName || '-'}
                   </h3>
-                  
-                  {/* Room */}
-                  <p className="text-xs text-[#4b5563] mb-3">{booking.pethouse || '-'}</p>
-                  
-                  {/* Check-in/Check-out Badge */}
+
+                  <p className="text-xs text-[#4b5563] mb-3">
+                    {booking.pethouse || '-'}
+                  </p>
+
                   <button
-                    // onClick={() => handleCheckout(`${booking.petName || ''}-${idx}`)}
                     className={`absolute right-3 top-3 rounded-full px-3 py-1 transition-colors ${
                       checkoutTimes[`${booking.petName || ''}-${idx}`]
                         ? 'bg-[#fee2e2] hover:bg-[#fecaca]'
@@ -345,31 +360,38 @@ export default function HotelPage() {
                   >
                     {checkoutTimes[`${booking.petName || ''}-${idx}`] ? (
                       <div className="flex flex-col items-end">
-                        <span className="text-xs text-[#991b1b] font-semibold">Check-out</span>
-                        <span className="text-[10px] text-[#991b1b]">{checkoutTimes[`${booking.petName || ''}-${idx}`]}</span>
+                        <span className="text-xs text-[#991b1b] font-semibold">
+                          Check-out
+                        </span>
+                        <span className="text-[10px] text-[#991b1b]">
+                          {checkoutTimes[`${booking.petName || ''}-${idx}`]}
+                        </span>
                       </div>
                     ) : (
                       <span className="text-xs text-[#15803d]">Checked In</span>
                     )}
                   </button>
-                  
-                  {/* Calendar Icon and Date Range */}
+
                   <div className="flex items-center gap-2 mt-2">
                     <svg className="size-3" fill="none" viewBox="0 0 11.4423 11.4423">
                       <g>
-                        <path d="M3.81485 0.954127V2.86118" stroke="#4B5563" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.953526" />
-                        <path d="M7.62896 0.954127V2.86118" stroke="#4B5563" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.953526" />
-                        <path d={svgPaths.p3d996180} stroke="#4B5563" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.953526" />
-                        <path d="M1.43104 4.76823H10.0128" stroke="#4B5563" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.953526" />
+                        <path d="M3.81485 0.954127V2.86118" stroke="#4B5563" strokeWidth="0.95" />
+                        <path d="M7.62896 0.954127V2.86118" stroke="#4B5563" strokeWidth="0.95" />
+                        <path d={svgPaths.p3d996180} stroke="#4B5563" strokeWidth="0.95" />
+                        <path d="M1.43104 4.76823H10.0128" stroke="#4B5563" strokeWidth="0.95" />
                       </g>
                     </svg>
-                    <span className="text-xs text-[#4b5563]">{formatDate(booking.check_in || booking.checkIn)} - {formatDate(booking.check_out || booking.checkOut)}</span>
+                    <span className="text-xs text-[#4b5563]">
+                      {formatDate(booking.check_in || booking.checkIn)} -{' '}
+                      {formatDate(booking.check_out || booking.checkOut)}
+                    </span>
                   </div>
                 </div>
               ))
             )}
           </div>
         </div>
+
 
         {/* Room Prices - Right Column */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">

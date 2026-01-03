@@ -1229,9 +1229,11 @@ def detail_report(report_id):
         images = models.MedicalImage.query.filter_by(report_id=report.report_id).all()
         image_list = [{'image_id': img.image_id, 'image_type': img.image_type, 'image_url': img.image_url} for img in images]
 
+        # Build response with multiple compatible keys so frontend can consume reliably
         data = {
             'report_id': report.report_id,
             'status': report.status,
+            # legacy / nested structures
             'pet': {
                 'pet_id': pet.pet_id,
                 'name': pet.name,
@@ -1242,9 +1244,22 @@ def detail_report(report_id):
                 'user_id': user.user_id,
                 'user_name': f"{user.first_name} {user.last_name}"
             },
+            # top-level convenience fields (preferred by some frontend code)
+            'petId': pet.pet_id,
+            'petName': pet.name,
+            'ownerId': user.user_id,
+            'ownerName': f"{user.first_name} {user.last_name}",
             'doctor_name': doctor.doctor_name,
+            # services: list of service names
             'services': service_list,
+            # Provide a primary service type for legacy consumers
+            'serviceType': service_list[0] if service_list else None,
+            # treatmentDetails is used by frontend to render service details
+            'treatmentDetails': service_list,
+            # medicines: list of objects with name + quantity
             'medicines': medicine_list,
+            # medicalHistory kept for backwards compatibility (array of names or objects)
+            'medicalHistory': medicine_list,
             'symptoms': symptom_list,
             'diseases': disease_list,
             'images': image_list,

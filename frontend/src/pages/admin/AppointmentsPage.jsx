@@ -67,10 +67,10 @@ export default function AppointmentsPage() {
 //     (a) =>
 //       a.status === "Pending" ||
 //       a.status === "Waiting" ||
-//       a.status === "Đã xử lí"
+//       a.status === "Đang chờ xác nhận"
 //   ).length;
 //   const canceledCount = appointments.filter(
-//     (a) => a.status === "Canceled"
+//     (a) => a.status === "Canceled" || a.status === "Đã huỷ lịch hẹn"
 //   ).length;
 
 //   // Filter appointments
@@ -165,29 +165,46 @@ const [appointments, setAppointments] = useState([]);
     return `${y}-${m}-${d}`;
   };
 
-  // stats
-  const todayAppointments = appointments.filter(
-    (a) => toIsoDate(a.date) === selectedDate
-  );
-  const confirmedCount = appointments.filter(
-    (a) => a.status === "Đặt lịch hẹn thành công" && toIsoDate(a.date) === selectedDate
-  ).length;
-  const pendingCount = appointments.filter(
-    (a) => a.status === "Đang chờ xác nhận" && toIsoDate(a.date) === selectedDate
-  ).length;
-  const canceledCount = appointments.filter(
-    (a) => a.status === "Đã hủy lịch hẹn" && toIsoDate(a.date) === selectedDate
-  ).length;
+  // Calculate stats (based on selectedDate)
+  const todayIso = selectedDate || new Date().toISOString().slice(0,10);
+  const todayAppointments = appointments.filter((a) => {
+    const iso = toIsoDate(a.date || a.booking_date || a.bookingDate);
+    return iso === todayIso;
+  });
+  // Partition today's appointments into three categories so their sum equals total
+  const confirmedSet = new Set(["Đã nhận", "Approved", "Đặt lịch hẹn thành công"]);
+  const pendingSet = new Set(["Pending", "Waiting", "Đang chờ xác nhận"]);
+  const canceledSet = new Set(["Canceled", "Đã huỷ lịch hẹn", "đã huỷ lịch hẹn", "Đã hủy lịch hẹn"]);
 
-  // filters
-  const filteredAppointments = appointments.filter((a) => {
+  let confirmedCount = 0;
+  let pendingCount = 0;
+  let canceledCount = 0;
+
+  todayAppointments.forEach((a) => {
+    const s = (a.status || "").trim();
+    if (confirmedSet.has(s)) confirmedCount += 1;
+    else if (canceledSet.has(s)) canceledCount += 1;
+    else if (pendingSet.has(s)) pendingCount += 1;
+    else canceledCount += 1; // unknown statuses count as pending to keep totals consistent
+  });
+
+  // Filter appointments
+  const filteredAppointments = appointments.filter((appointment) => {
+    const apptIso = toIsoDate(
+      appointment.date ||
+      appointment.booking_date ||
+      appointment.bookingDate
+    );
+
     const matchesDate =
-      !selectedDate || toIsoDate(a.date) === selectedDate;
+      !selectedDate || apptIso === selectedDate;
+
     const matchesStatus =
-      selectedStatus === "all" || a.status === selectedStatus;
+      selectedStatus === "all" || appointment.status === selectedStatus;
+
     const matchesUser =
       !searchUser ||
-      a.ownerName.toLowerCase().includes(searchUser.toLowerCase());
+      appointment.ownerName.toLowerCase().includes(searchUser.toLowerCase());
 
     return matchesDate && matchesStatus && matchesUser;
   });
@@ -601,3 +618,4 @@ function CheckinModal({ appointment, onClose }) {
     document.body
   );
 }
+

@@ -250,13 +250,14 @@ export async function getAdminServices() {
 /* ===== FEEDBACKS ===== */
 export const getReviews = async () => {
   try {
-    const res = await request("/admin/feedback", { auth: true });
+    // Use public feedback endpoint (no auth) for homepage testimonials
+    const res = await request("/feedback", { auth: false });
     const rows = res?.data || res || [];
     return rows.map((f) => ({
       id: f.feedback_id || f.id,
-      name: f.user_name || `User #${f.user_id}`,
-      pet: f.pet_name || "",
-      content: f.content || f.message || "",
+      name: f.name || f.user_name || `User #${f.user_id}`,
+      pet: f.pet || f.pet_name || "",
+      content: f.content || f.message || f.comment || "",
       rating: Number(f.rating) || 5,
     }));
   } catch (err) {
@@ -1021,7 +1022,7 @@ export const api = {
 
   getHotelBookings: async () => {
     try {
-      const res = await request('/admin/pet-hotel/registrations');
+      const res = await request('/admin/hotel/registrations');
       const data = res?.data || [];
       if (data.length === 0) return [];
       return data.map(b => ({
@@ -1356,9 +1357,11 @@ export async function getMedicalRecordByReportId(reportId) {
       ownerId: data.ownerId || data.user?.user_id,
       ownerName: data.ownerName || data.user?.user_name || `${data.user?.first_name || ''} ${data.user?.last_name || ''}`.trim(),
       doctorName: data.doctorName || data.doctor_name,
-      symptoms: data.symptoms,
+      symptoms: data.symptoms || data.symptoms_list || [],
+      // treatmentDetails may be an array of service names or objects
       treatmentDetails: data.treatmentDetails || data.services || [],
-      medicalHistory: data.medicalHistory || data.medicines?.map(m => m.name) || [],
+      // Keep medicines as objects with quantity when provided by backend
+      medicalHistory: data.medicalHistory || data.medicines || (data.medicines_list ? data.medicines_list : []),
       dosage: data.dosage,
       frequency: data.frequency,
       medicalCondition: data.medicalCondition,

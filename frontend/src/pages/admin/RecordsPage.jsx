@@ -208,7 +208,7 @@ export default function RecordsPage() {
         </div>
 
         {/* Info Cards Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Report ID */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center gap-3 mb-3">
@@ -222,18 +222,7 @@ export default function RecordsPage() {
             </p>
           </div>
 
-          {/* Service Type */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <Stethoscope className="size-5 text-blue-600" />
-              </div>
-              <span className="text-sm text-gray-600">Service Type</span>
-            </div>
-            <p className="text-lg font-semibold text-gray-900">
-              {selectedRecord.serviceType}
-            </p>
-          </div>
+          
 
           {/* Attending Doctor */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -363,8 +352,22 @@ export default function RecordsPage() {
               </div>
             </div>
 
-            {/* Medical History */}
             <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                Dịch vụ
+              </h4>
+              <div className="flex gap-2">
+                {(selectedRecord.services && selectedRecord.services.length > 0)
+                  ? selectedRecord.services.map((s, i) => (
+                      <span key={i} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm">{s}</span>
+                    ))
+                  : <span className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm">{selectedRecord.serviceType}</span>
+                }
+              </div>
+            </div>
+
+            {/* Medical History */}
+            {/* <div>
               <h4 className="text-sm font-medium text-gray-700 mb-2">
                 Chi tiết điều trị
               </h4>
@@ -378,8 +381,31 @@ export default function RecordsPage() {
                   </span>
                 ))}
               </div>
+            </div> */}
+
+            {/*Chi tiết điều trị */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                Chi tiết điều trị
+              </h4>
+              <div className="flex gap-2 flex-wrap">
+                {(selectedRecord.medicalHistory || []).map((med, index) => {
+                  // med may be a string or an object { name, quantity }
+                  const name = typeof med === 'string' ? med : (med.name || med.medicine_name || med.med_name || '');
+                  const qty = typeof med === 'string' ? null : (med.quantity ?? med.qty ?? null);
+                  return (
+                    <div key={index} className="bg-blue-50 text-blue-700 rounded-lg text-sm p-3">
+                      <p className="text-sm font-medium">{name}</p>
+                      {qty !== null && (
+                        <p className="text-xs text-gray-500">Số lượng: {qty}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
+            
             {/* Prescription */}
             {/* <div>
               <h4 className="text-sm font-medium text-gray-700 mb-2">

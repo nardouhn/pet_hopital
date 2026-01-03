@@ -217,7 +217,7 @@ export default function InvoicesPage() {
               </div>
 
               {/* Status Badge */}
-              <div className="mb-4">
+              {/* <div className="mb-4">
                 <p className="text-xs text-gray-500 uppercase mb-2">STATUS</p>
                 <span
                   className={`inline-flex px-3 py-1.5 rounded-lg text-xs font-medium ${getStatusColor(
@@ -226,7 +226,7 @@ export default function InvoicesPage() {
                 >
                   {selectedInvoice.status}
                 </span>
-              </div>
+              </div> */}
 
               {/* Confirm Payment Button - Only for Pending */}
               {selectedInvoice.status === "Pending" && (

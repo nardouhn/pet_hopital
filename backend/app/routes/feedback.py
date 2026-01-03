@@ -5,6 +5,30 @@ from ..middleware import authenticator, check_role
 
 fb_bp = Blueprint('feedback', __name__)
 
+
+# Public: GET /feedback -> recent feedbacks with status 'Show'
+@fb_bp.route('/', methods=['GET'])
+def list_public_feedback():
+    try:
+        # Return latest 3 visible feedbacks for homepage
+        rows = Feedback.query.filter_by(status='Show').order_by(Feedback.created_at.desc()).limit(6).all()
+        data = []
+        for r in rows:
+            # include useful fields for frontend testimonials
+            data.append({
+                'id': r.feedback_id,
+                'name': (getattr(r, 'user') and getattr(r.user, 'first_name', None)) or getattr(r, 'user_name', None) or 'Khách',
+                'pet': r.pet_name or '',
+                'content': r.content or '',
+                'rating': int(r.rating) if r.rating is not None else 5,
+                'created_at': r.created_at.isoformat() if getattr(r, 'created_at', None) else None
+            })
+        return jsonify({'data': data}), 200
+    except Exception as e:
+        print('Error fetching public feedback:', e)
+        return jsonify({'data': []}), 200
+
+
 @fb_bp.route('/', methods=['POST'])
 def submit_feedback():
     data = request.get_json() or {}
