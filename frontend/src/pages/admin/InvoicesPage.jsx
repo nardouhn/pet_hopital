@@ -10,7 +10,7 @@ import {
   Printer,
   RotateCcw,
 } from "lucide-react";
-import { api } from "@/api/mockApi";
+import { api, getInvoicesList, getInvoiceDetails } from "@/api/mockApi";
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -19,18 +19,39 @@ export default function InvoicesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   // Filters
-  const [selectedDate, setSelectedDate] = useState("12/21/2025");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [serviceFilter, setServiceFilter] = useState("all");
+  const [selectedDate, setSelectedDate] = useState("");
   const [searchOwner, setSearchOwner] = useState("");
-  const [searchPet, setSearchPet] = useState("");
 
   useEffect(() => {
-    api.getInvoices().then((data) => {
-      setInvoices(data);
-      setLoading(false);
-    });
-  }, []);
+    fetchInvoices();
+  }, [selectedDate, searchOwner]);
+
+  const fetchInvoices = async () => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (selectedDate) params.date = selectedDate;
+      if (searchOwner) params.user = searchOwner;
+      const data = await getInvoicesList(params);
+      setInvoices(data.map(inv => ({
+        id: inv.invoice_id,
+        invoiceId: inv.invoice_id,
+        amount: inv.total,
+        status: 'Paid',
+        patientName: inv.pet_name,
+        ownerName: inv.user_name,
+        dueDate: inv.check_out ? new Date(inv.check_out).toLocaleDateString() : '',
+        subtotal: inv.total,
+        tax: 0,
+        services: [],
+        medications: []
+      })));
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+      setInvoices([]);
+    }
+    setLoading(false);
+  };
 
   // Calculate stats
   const totalRevenue = invoices.reduce((sum, inv) => sum + inv.amount, 0);
@@ -52,34 +73,33 @@ export default function InvoicesPage() {
     (inv) => inv.status === "Overdue"
   ).length;
 
-  // Apply filters
-  const filteredInvoices = invoices.filter((invoice) => {
-    const matchesStatus =
-      statusFilter === "all" || invoice.status === statusFilter;
-    const matchesService =
-      serviceFilter === "all" || invoice.service === serviceFilter;
-    const matchesOwner =
-      searchOwner === "" ||
-      invoice.ownerName.toLowerCase().includes(searchOwner.toLowerCase());
-    const matchesPet =
-      searchPet === "" ||
-      invoice.patientName.toLowerCase().includes(searchPet.toLowerCase());
-
-    return matchesStatus && matchesService && matchesOwner && matchesPet;
-  });
+  // Apply filters (none needed as filtered from API)
+  const filteredInvoices = invoices;
 
   const handleReset = () => {
-    setSelectedDate("12/21/2025");
-    setStatusFilter("all");
-    setServiceFilter("all");
+    setSelectedDate("");
     setSearchOwner("");
-    setSearchPet("");
   };
 
-  const handleViewInvoice = (invoiceId) => {
-    const invoice = invoices.find((inv) => inv.invoiceId === invoiceId);
-    setSelectedInvoice(invoice);
-    setView("detail");
+  const handleViewInvoice = async (invoiceId) => {
+    try {
+      const data = await getInvoiceDetails(invoiceId);
+      setSelectedInvoice({
+        invoiceId: data.invoice_id,
+        patientName: data.pet_name,
+        ownerName: data.user_name,
+        amount: data.total,
+        status: 'Paid',
+        dueDate: data.check_out ? new Date(data.check_out).toLocaleDateString() : '',
+        subtotal: data.total,
+        tax: 0,
+        services: data.services || [],
+        medications: data.medicines || []
+      });
+      setView("detail");
+    } catch (error) {
+      console.error('Error fetching invoice details:', error);
+    }
   };
 
   const handleBackToList = () => {
@@ -171,16 +191,11 @@ export default function InvoicesPage() {
                 </div>
 
                 <div>
-                  <p className="text-xs text-gray-500 uppercase mb-1">Medicine</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {selectedInvoice.medicineName}
+                  <p className="text-xs text-gray-500 uppercase mb-1">
+                    DUE DATE
                   </p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-gray-500 uppercase mb-1">Service</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {selectedInvoice.services}
+                    {selectedInvoice.dueDate}
                   </p>
                 </div>
 {/*             
@@ -401,49 +416,16 @@ export default function InvoicesPage() {
 
       {/* Filters Section */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* Date */}
           <div>
             <label className="block text-sm text-gray-600 mb-2">Date</label>
             <input
-              type="text"
+              type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200"
             />
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-2">Status</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200"
-            >
-              <option value="all">All Statuses</option>
-              <option value="Paid">Paid</option>
-              <option value="Pending">Pending</option>
-              <option value="Overdue">Overdue</option>
-            </select>
-          </div>
-
-          {/* Service */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-2">Service</label>
-            <select
-              value={serviceFilter}
-              onChange={(e) => setServiceFilter(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200"
-            >
-              <option value="all">All Services</option>
-              <option value="Annual Check-up">Annual Check-up</option>
-              <option value="Vaccination">Vaccination</option>
-              <option value="Surgery">Surgery</option>
-              <option value="Dental Cleaning">Dental Cleaning</option>
-              <option value="Follow-up Visit">Follow-up Visit</option>
-              <option value="X-Ray Imaging">X-Ray Imaging</option>
-            </select>
           </div>
 
           {/* Search Owner */}
@@ -455,29 +437,21 @@ export default function InvoicesPage() {
               type="text"
               value={searchOwner}
               onChange={(e) => setSearchOwner(e.target.value)}
-              placeholder="Type name..."
+              placeholder="Type name or email..."
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200"
             />
           </div>
 
-          {/* Search Pet */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-2">
-              Search Pet
-            </label>
-            <input
-              type="text"
-              value={searchPet}
-              onChange={(e) => setSearchPet(e.target.value)}
-              placeholder="Type name..."
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200"
-            />
-          </div>
+          {/* Placeholder */}
+          <div></div>
         </div>
 
         {/* Filter Buttons */}
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-6 py-2.5 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors">
+          <button
+            onClick={fetchInvoices}
+            className="flex items-center gap-2 px-6 py-2.5 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors"
+          >
             Apply Filters
           </button>
           <button
@@ -509,6 +483,9 @@ export default function InvoicesPage() {
                   AMOUNT
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  DATE
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   STATUS
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -520,7 +497,7 @@ export default function InvoicesPage() {
               {filteredInvoices.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan="7"
                     className="px-6 py-16 text-center text-gray-500"
                   >
                     No invoices found
@@ -550,6 +527,11 @@ export default function InvoicesPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-medium text-gray-900">
                         {invoice.amount}đ
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-600">
+                        {invoice.dueDate}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

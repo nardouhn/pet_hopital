@@ -82,7 +82,15 @@ export default function VisitsPage() {
   // Apply filters
   const filteredVisits = visits.filter((visit) => {
     const visitIso = toIsoDate(visit.date || visit.booking_date || visit.bookingDate);
-    const matchesDate = selectedDate === "all" || (visitIso && visitIso === selectedDate);
+    // Date filter: if selectedDate is empty or "all", show all; otherwise match exact date
+    // selectedDate from date input is already in YYYY-MM-DD format
+    let matchesDate = true;
+    if (selectedDate && selectedDate !== "" && selectedDate !== "all") {
+      // Normalize both dates to YYYY-MM-DD for comparison
+      const normalizedSelectedDate = selectedDate.includes('T') ? selectedDate.split('T')[0] : selectedDate;
+      matchesDate = visitIso !== null && visitIso === normalizedSelectedDate;
+    }
+    
     const matchesStatus = selectedStatus === "all" || visit.status === selectedStatus;
     // const matchesService = selectedService === "all" || visit.service === selectedService;
     // const matchesDoctor = selectedDoctor === "all" || visit.doctor === selectedDoctor;

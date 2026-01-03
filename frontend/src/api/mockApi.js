@@ -252,7 +252,7 @@ export const getReviews = async () => {
 export const submitFeedback = async (data) => {
   try {
     // Attach Authorization header for authenticated feedback submissions
-    const res = await request("/feedback", { method: "POST", body: data, auth: true });
+    const res = await request("/feedback/", { method: "POST", body: data, auth: true });
     return { success: true, message: res?.message || "OK", data: res?.data };
   } catch (err) {
     await delay();
@@ -597,7 +597,7 @@ export async function getAdminAppointments() {
       checkIn: r.check_in ? (new Date(r.check_in)).toLocaleString() : null,
       checkOut: r.check_out ? (new Date(r.check_out)).toLocaleString() : null,
       doctor: r.doctor_name || (r.doctor && r.doctor.doctor_name) || '-',
-      service: r.service || r.timeslot || 'General',
+      service: r.service || '-',
       status: r.status || '-'
     }));
   } catch (err) {
@@ -995,6 +995,54 @@ export const api = {
       return null;
     }
   },
+
+  downloadReportJson: async (reportId) => {
+    try {
+      const res = await fetch(`${BASE}/admin/patient_reports/download_report/${reportId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth') ? JSON.parse(localStorage.getItem('auth')).accessToken : ''}`,
+        },
+      });
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `report_${reportId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('api.downloadReportJson error', err);
+      throw err;
+    }
+  },
+
+  downloadReportPdf: async (reportId) => {
+    try {
+      const res = await fetch(`${BASE}/admin/patient_reports/download_pdf/${reportId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth') ? JSON.parse(localStorage.getItem('auth')).accessToken : ''}`,
+        },
+      });
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `report_${reportId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('api.downloadReportPdf error', err);
+      throw err;
+    }
+  },
 };
 
 // Named helper exports matching requested names (use real backend routes)
@@ -1239,6 +1287,54 @@ export async function getFeedback() {
   } catch (err) {
     console.error('getFeedback error', err);
     return [];
+  }
+}
+
+export async function downloadReportJson(reportId) {
+  try {
+    const res = await fetch(`${BASE}/admin/patient_reports/download_report/${reportId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth') ? JSON.parse(localStorage.getItem('auth')).accessToken : ''}`,
+      },
+    });
+    if (!res.ok) throw new Error('Download failed');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `report_${reportId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (err) {
+    console.error('downloadReportJson error', err);
+    throw err;
+  }
+}
+
+export async function downloadReportPdf(reportId) {
+  try {
+    const res = await fetch(`${BASE}/admin/patient_reports/download_pdf/${reportId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth') ? JSON.parse(localStorage.getItem('auth')).accessToken : ''}`,
+      },
+    });
+    if (!res.ok) throw new Error('Download failed');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `report_${reportId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (err) {
+    console.error('downloadReportPdf error', err);
+    throw err;
   }
 }
 

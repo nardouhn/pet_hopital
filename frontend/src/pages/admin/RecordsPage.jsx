@@ -145,7 +145,10 @@ export default function RecordsPage() {
               <Printer className="size-4" />
               <span>Print</span>
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors">
+            <button
+              onClick={() => api.downloadReportPdf(selectedRecord.reportId)}
+              className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors"
+            >
               <Download className="size-4" />
               <span>Download PDF</span>
             </button>
@@ -219,12 +222,12 @@ export default function RecordsPage() {
                   {selectedRecord.petName}
                 </span>
               </div>
-              <div className="flex justify-between">
+              {/* <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Species</span>
                 <span className="text-sm font-medium text-gray-900">
                   {selectedRecord.petSpecies}
                 </span>
-              </div>
+              </div> */}
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Breed</span>
                 <span className="text-sm font-medium text-gray-900">
@@ -286,7 +289,7 @@ export default function RecordsPage() {
               </h4>
               <div className="flex gap-2">
                 <span className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm">
-                  {selectedRecord.symptoms}
+                  {selectedRecord.symptoms.join(', ')}
                 </span>
               </div>
             </div>
@@ -326,7 +329,7 @@ export default function RecordsPage() {
             </div>
 
             {/* Prescription */}
-            <div>
+            {/* <div>
               <h4 className="text-sm font-medium text-gray-700 mb-2">
                 Chỉ định
               </h4>
@@ -344,17 +347,17 @@ export default function RecordsPage() {
                   </p>
                 </div>
               </div>
-            </div>
+            </div> */}
 
-            {/* Medical Condition */}
+            {/* Medical Condition
             <div>
               <h4 className="text-sm font-medium text-gray-700 mb-2">
-                Tiền sử bệnh lý
+
               </h4>
-              <p className="text-sm text-gray-600">
+              {/* <p className="text-sm text-gray-600">
                 {selectedRecord.medicalCondition}
-              </p>
-            </div>
+              </p> */}
+            </div> */}
           </div>
         </div>
 
@@ -728,7 +731,10 @@ export default function RecordsPage() {
                 >
                   Detail
                 </button>
-                <button className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <button
+                  onClick={() => api.downloadReportJson(record.reportId)}
+                  className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
                   <Download className="size-4 text-gray-600" />
                 </button>
               </div>
