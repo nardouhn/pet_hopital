@@ -87,11 +87,7 @@ export default function UsersPage() {
             Quản lý chủ nuôi và thú cưng của họ ...
           </p>
         </div>
-        <div className="bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-600">
-            Today: Thứ 3 ngày 30 tháng 12 năm 2025
-          </p>
-        </div>
+        
       </div>
 
       {/* Main Content Card */}
@@ -226,37 +222,9 @@ export default function UsersPage() {
                         {openDropdown === user.id && (
                           <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
                             <div className="py-1">
-                              <button 
-                                onClick={() => { handleSetRole(user.id, 'admin'); setOpenDropdown(null); }}
-                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full"
-                              >
-                                <UserCheck className="size-4 mr-2" />
-                                Set as Admin
-                              </button>
-                              <button 
-                                onClick={() => { handleSetRole(user.id, 'customer'); setOpenDropdown(null); }}
-                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full"
-                              >
-                                <UserCircle2 className="size-4 mr-2" />
-                                Set as Customer
-                              </button>
-                              {user.is_active ? (
-                                <button 
-                                  onClick={() => { handleLockUser(user.id); setOpenDropdown(null); }}
-                                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full"
-                                >
-                                  <Lock className="size-4 mr-2" />
-                                  Lock Account
-                                </button>
-                              ) : (
-                                <button 
-                                  onClick={() => { handleUnlockUser(user.id); setOpenDropdown(null); }}
-                                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full"
-                                >
-                                  <Unlock className="size-4 mr-2" />
-                                  Unlock Account
-                                </button>
-                              )}
+                              
+                              
+                              
                               <button 
                                 onClick={() => { handleDeleteUser(user.id); setOpenDropdown(null); }}
                                 className="flex items-center px-4 py-2 text-sm text-red-700 hover:bg-gray-100 w-full"

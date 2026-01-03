@@ -189,18 +189,17 @@ export default function AppointmentsPage() {
 
           {/* All Statuses */}
           <div>
-            <label className="block text-sm text-gray-600 mb-2">Pet type</label>
+            <label className="block text-sm text-gray-600 mb-2">Status</label>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-transparent"
             >
               <option value="all">All Statuses</option>
-              <option value="Đã nhận">Đã nhận</option>
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Waiting">Waiting</option>
-              <option value="Canceled">Canceled</option>
+              <option value="Đã nhận">Đang chờ xác nhận</option>
+              <option value="Pending">Đặt lịch hẹn thành công</option>
+              <option value="Approved">Đã hủy lịch hẹn</option>
+              
             </select>
           </div>
 

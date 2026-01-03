@@ -233,14 +233,12 @@ export default function DoctorsPage() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Doctor
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Specialty
-                  </th>
+                  
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Contact
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Schedule
+                    STATUS
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Actions
@@ -264,30 +262,24 @@ export default function DoctorsPage() {
                           <p className="font-semibold text-gray-900">
                             {doctor.name}
                           </p>
-                          <p className="text-sm text-gray-500">
-                            {doctor.email}
-                          </p>
+                          
                         </div>
                       </div>
                     </td>
+                    
                     <td className="px-6 py-4">
-                      <span className="text-sm text-gray-700">
-                        {doctor.specialty}
-                      </span>
+                      <p className="text-sm text-gray-500">
+                            {doctor.email}
+                          </p>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-gray-700">
-                        {doctor.phone}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {renderScheduleWeekdays(doctor)}
+                      <p className="text-sm text-gray-700">
+                        {doctor?.current_status && String(doctor.current_status).trim() !== "" ? doctor.current_status : "Unknown"}
+                      </p>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
-                        <button className="text-sm text-teal-600 hover:text-teal-700">
-                          Edit
-                        </button>
+                        
                         <button className="text-sm text-red-600 hover:text-red-700">
                           Delete
                         </button>
@@ -313,7 +305,7 @@ function ScheduleView({
   monthName,
 }) {
   // Days to show in calendar (2-17)
-  const days = Array.from({ length: 16 }, (_, i) => i + 2);
+  const days = Array.from({ length: 7 }, (_, i) => i + 2);
 
   // Use shared `SHIFTS`, `getShiftColor`, `getShiftLabel` from module scope
 

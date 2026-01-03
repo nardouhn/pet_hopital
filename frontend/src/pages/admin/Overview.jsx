@@ -25,7 +25,7 @@ export default function Overview() {
 
         // Update quick stats with total pets if available
         try {
-          const totalPets = (statsData.find(s => s.title && s.title.includes('Tổng thú cưng')) || {}).value || 0;
+          const totalPets = (statsData.find(s => s.title && s.title.includes('Tổng số thú cưng')) || {}).value || 0;
           setQuickStats(q => ({ ...q, totalPets }));
         } catch (e) {
           // ignore
@@ -67,6 +67,17 @@ export default function Overview() {
     }
   };
 
+  // Get current date in Vietnamese format
+  const getCurrentDateVietnamese = () => {
+    const days = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+    const now = new Date();
+    const dayOfWeek = days[now.getDay()];
+    const day = now.getDate();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    return `${dayOfWeek} ngày ${day} tháng ${month} năm ${year}`;
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -76,9 +87,7 @@ export default function Overview() {
           <p className="text-sm text-gray-500 mt-1">Tổng quan phòng khám...</p>
         </div>
         <div className="text-right">
-          {/* <p className="text-sm text-gray-500">
-            Today: Thứ 3 ngày 18 tháng 12 năm 2025
-          </p> */}
+          <p className="text-sm text-gray-500">Today: {getCurrentDateVietnamese()}</p>
         </div>
       </div>
 
@@ -110,9 +119,7 @@ export default function Overview() {
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100">
           <div className="p-5 border-b border-gray-100 flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">Lịch hẹn gần đây!</h2>
-            <button className="text-sm text-teal-500 hover:text-teal-600">
-              View All
-            </button>
+            
           </div>
           <div className="divide-y divide-gray-100">
             {appointments.map((appointment) => (
@@ -163,7 +170,7 @@ export default function Overview() {
         </div>
 
         {/* Quick Stats Sidebar */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 self-start">
           <div className="p-5 border-b border-gray-100">
             <h2 className="font-semibold text-gray-900">Thống kê nhanh</h2>
           </div>
@@ -181,20 +188,7 @@ export default function Overview() {
               </span>
             </div>
 
-            {/* Avg Exam Time */}
-            <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-full bg-pink-100 flex items-center justify-center">
-                  <Calendar className="size-5 text-pink-500" />
-                </div>
-                <span className="text-sm text-gray-600">
-                  Thời gian chờ trung bình
-                </span>
-              </div>
-              <span className="font-bold text-gray-900">
-                {quickStats.avgExamTime}
-              </span>
-            </div>
+            
 
             {/* Pet Hotel Widget */}
             <div className="bg-gradient-to-br from-teal-300 to-emerald-300 rounded-xl p-6 text-white">

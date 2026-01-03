@@ -93,10 +93,7 @@ export default function PetsPage() {
             Quản lý hồ sơ thú cưng của bạn
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors">
-          <Plus className="size-4" />
-          Thêm
-        </button>
+        
       </div>
 
       {/* Species Filter Tabs */}
