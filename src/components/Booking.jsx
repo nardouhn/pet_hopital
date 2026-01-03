@@ -111,7 +111,7 @@ const Booking = () => {
             {/* Tên thú cưng */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tên thường gọi của thú cưng *
+                Tên thường gọi của thú cưng 
               </label>
               <input
                 type="text"
@@ -120,14 +120,14 @@ const Booking = () => {
                 onChange={handleChange}
                 placeholder="Hiệu"
                 className={inputStyle(form.petName)}
-                required
+                
               />
             </div>
 
             {/* Loại thú */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Thú cưng nhà bạn là giống gì? *
+                Thú cưng nhà bạn là giống gì? 
               </label>
               <input
                 type="text"
@@ -136,14 +136,14 @@ const Booking = () => {
                 onChange={handleChange}
                 placeholder="Chó, mèo,..."
                 className={inputStyle(form.petType)}
-                required
+                
               />
             </div>
 
             {/* Dịch vụ */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Dịch vụ bạn muốn làm *
+                Dịch vụ bạn muốn làm
               </label>
               <input
                 type="text"
@@ -152,7 +152,6 @@ const Booking = () => {
                 onChange={handleChange}
                 placeholder="Khám sức khỏe, tiêm phòng..."
                 className={inputStyle(form.service)}
-                required
               />
             </div>
 
