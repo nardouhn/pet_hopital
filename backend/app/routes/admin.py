@@ -120,6 +120,37 @@ def list_appointments():
                 doctor_name = None
 
             slot = getattr(appt, 'slot', None)
+            
+            # For visits, use slot status if available, otherwise use appointment status
+            # Map slot status to visit status format
+            visit_status = appt.status
+            if slot and slot.status:
+                slot_status = slot.status
+                # Map slot status to match frontend expectations
+                if slot_status == 'Đang chờ':
+                    visit_status = 'Chờ'
+                elif slot_status == 'Đang khám':
+                    visit_status = 'Đang khám'
+                elif slot_status == 'Đã xong':
+                    visit_status = 'Hoàn thành'
+                else:
+                    visit_status = slot_status
+
+            # Get service from patient_report -> report_services -> service if available
+            # Otherwise fall back to appointment.service
+            service_name = appt.service
+            if slot:
+                try:
+                    report = getattr(slot, 'patient_report', None)
+                    if report:
+                        report_services = getattr(report, 'report_services', [])
+                        if report_services:
+                            # Get the first service name (or concatenate multiple services)
+                            services = [rs.service.name for rs in report_services if rs and rs.service]
+                            if services:
+                                service_name = ', '.join(services)
+                except Exception:
+                    pass  # Fall back to appt.service if any error occurs
 
             data.append({
                 'appointment_id': appt.appointment_id,
@@ -128,12 +159,12 @@ def list_appointments():
                 'check_out': slot.check_out.isoformat() if slot and slot.check_out else None,
                 'user_name': f"{user.first_name} {user.last_name}",
                 'email': user.email,
-                'status': appt.status,
+                'status': visit_status,
                 'booking_date': appt.booking_date.isoformat() if appt.booking_date else None,
                 'created_at': appt.created_at.isoformat() if appt.created_at else None,
                 'pet_name': pet_name,
                 'doctor_name': doctor_name,
-                'service': appt.service
+                'service': service_name
             })
 
         return ok(data)
@@ -1116,26 +1147,26 @@ def detail_report(report_id):
 
         # services
         services = db.session.query(models.Service.name).join(
-            models.report_service, models.Service.service_id == models.report_service.service_id
-        ).filter(models.report_service.report_id == report.report_id).all()
+            models.ReportService, models.Service.service_id == models.ReportService.service_id
+        ).filter(models.ReportService.report_id == report.report_id).all()
         service_list = [s[0] for s in services]
 
         # medicines
-        medicines = db.session.query(models.Medicine.name, models.report_medicine.quantity).join(
-            models.report_medicine, models.Medicine.medicine_id == models.report_medicine.medicine_id
-        ).filter(models.report_medicine.report_id == report.report_id).all()
+        medicines = db.session.query(models.Medicine.name, models.ReportMedicine.quantity).join(
+            models.ReportMedicine, models.Medicine.medicine_id == models.ReportMedicine.medicine_id
+        ).filter(models.ReportMedicine.report_id == report.report_id).all()
         medicine_list = [{'name': m[0], 'quantity': m[1]} for m in medicines]
 
         # symptoms
         symptoms = db.session.query(models.Symptom.name).join(
-            models.report_symptom, models.Symptom.symptom_id == models.report_symptom.symptom_id
-        ).filter(models.report_symptom.report_id == report.report_id).all()
+            models.ReportSymptom, models.Symptom.symptom_id == models.ReportSymptom.symptom_id
+        ).filter(models.ReportSymptom.report_id == report.report_id).all()
         symptom_list = [s[0] for s in symptoms]
 
         # diseases
         diseases = db.session.query(models.Disease.disease_name).join(
-            models.report_diagnose, models.Disease.diagnose_id == models.report_diagnose.diagnose_id
-        ).filter(models.report_diagnose.report_id == report.report_id).all()
+            models.ReportDiagnose, models.Disease.diagnose_id == models.ReportDiagnose.diagnose_id
+        ).filter(models.ReportDiagnose.report_id == report.report_id).all()
         disease_list = [d[0] for d in diseases]
 
         # images
@@ -1298,8 +1329,8 @@ def download_report(report_id):
 
         # services
         services = db.session.query(models.Service.name).join(
-            models.report_service, models.Service.service_id == models.report_service.service_id
-        ).filter(models.report_service.report_id == report.report_id).all()
+            models.ReportService, models.Service.service_id == models.ReportService.service_id
+        ).filter(models.ReportService.report_id == report.report_id).all()
         service_list = [s[0] for s in services]
 
         # medicines

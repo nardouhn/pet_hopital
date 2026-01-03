@@ -354,9 +354,9 @@ export default function RecordsPage() {
               <h4 className="text-sm font-medium text-gray-700 mb-2">
 
               </h4>
-              {/* <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600">
                 {selectedRecord.medicalCondition}
-              </p> */}
+              </p>
             </div> */}
           </div>
         </div>
