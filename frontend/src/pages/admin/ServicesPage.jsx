@@ -48,121 +48,55 @@ export default function ServicesPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Dịch vụ và Thuốc men
-          </h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Quản lý dịch vụ và khám và thuốc
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">Dịch vụ và Thuốc men</h1>
+          <p className="text-sm text-gray-600 mt-1">Quản lý dịch vụ và khám và thuốc</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors">
-          <Plus className="size-4" />
-          <span>Add Item</span>
-        </button>
+        
       </div>
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Services Section */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[600px]">
+          <div className="flex items-center justify-between p-6 border-b border-gray-100">
             <h2 className="text-lg font-semibold text-gray-900">Services</h2>
-            {/* <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-              View all
-            </button> */}
+            <span className="text-sm text-gray-500">{services.length} items</span>
           </div>
 
-          <div className="space-y-4">
-            {services.slice(0, 4).map((service) => (
-              <div
-                key={service.id}
-                className="bg-gray-50 rounded-xl p-4 border border-gray-100 hover:border-gray-200 transition-colors"
-              >
-                {/* Service Name and Price */}
-                <div className="flex items-start justify-between mb-3">
+          <div className="overflow-y-auto flex-1 p-6">
+            <div className="space-y-3">
+              {services.map((service) => (
+                <div
+                  key={service.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-teal-300 hover:bg-teal-50 transition-all cursor-pointer"
+                >
                   <h3 className="font-medium text-gray-900">{service.name}</h3>
-                  <span className="text-lg font-semibold text-gray-900">
-                    {service.price ? new Intl.NumberFormat('vi-VN').format(service.price) + ' đ' : '—'}
-                  </span>
+                  <span className="font-semibold text-teal-600">${service.price}</span>
                 </div>
-
-                {/* Category and Duration */}
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium ${getCategoryColor(
-                      service.category
-                    )}`}
-                  >
-                    {service.category}
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    {service.duration}
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Medications & Vaccines Section */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Medications & Vaccines
-            </h2>
-            {/* <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-              View all
-            </button> */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[600px]">
+          <div className="flex items-center justify-between p-6 border-b border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900">Medications & Vaccines</h2>
+            <span className="text-sm text-gray-500">{medications.length} items</span>
           </div>
 
-          <div className="space-y-4">
-            {medications.slice(0, 4).map((medication) => (
-              <div
-                key={medication.id}
-                className="bg-gray-50 rounded-xl p-4 border border-gray-100 hover:border-gray-200 transition-colors"
-              >
-                {/* Medication Name */}
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="font-medium text-gray-900">
-                    {medication.name}
-                  </h3>
+          <div className="overflow-y-auto flex-1 p-6">
+            <div className="space-y-3">
+              {medications.map((medication) => (
+                <div
+                  key={medication.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-blue-300 hover:bg-blue-50 transition-all cursor-pointer"
+                >
+                  <h3 className="font-medium text-gray-900">{medication.name}</h3>
+                  <span className="font-semibold text-blue-600">${medication.pricePerUnit}</span>
                 </div>
-
-                {/* Type Badge and Details */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium ${getTypeColor(
-                        medication.type
-                      )}`}
-                    >
-                      {medication.type}
-                    </span>
-                    <span className="text-sm text-gray-600">
-                      {medication.quantity && medication.quantity > 0 ? (
-                        <>{medication.quantity} {medication.unit}</>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </span>
-                    <span className="text-sm text-gray-600">
-                      {typeof medication.pricePerUnit === 'number' ? (
-                        new Intl.NumberFormat('vi-VN').format(medication.pricePerUnit)
-                      ) : medication.pricePerUnit} đ / {medication.unit === 'tablets' ? 'tablet' : 'dose'}
-                    </span>
-                  </div>
-
-                  {/* Expiry or Next Order Date */}
-                  {/* <div className="text-xs text-gray-500">
-                    {medication.expiryDate ? (
-                      <span>Exp: {medication.expiryDate}</span>
-                    ) : (
-                      <span>Next order: {medication.nextOrder}</span>
-                    )}
-                  </div> */}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
