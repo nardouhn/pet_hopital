@@ -151,7 +151,7 @@ export async function getRecentAppointments() {
         // Prefer explicit doctor_name if provided, otherwise fallback to first service or '-'
         doctor: r.doctor_name || ((Array.isArray(r.services) && r.services.length > 0) ? r.services[0] : '-'),
         time: r.check_in ? (new Date(r.check_in)).toLocaleString() : '-',
-        status: r.status || '-',
+        status: _normalizeStatus(r.status || '-'),
       });
     });
   } catch (err) {
@@ -231,17 +231,33 @@ export async function getDoctors() {
   }
 }
 
+// Admin: fetch services via admin items blueprint (GET /admin/items/services)
+export async function getAdminServices() {
+  try {
+    const res = await request('/admin/items/services', { auth: true });
+    const rows = Array.isArray(res) ? res : res?.data || [];
+    return rows.map((s) => ({
+      id: s.service_id || s.id,
+      name: s.service_name || s.name || s.title || "",
+      price: s.price || s.unit_price || null,
+    }));
+  } catch (err) {
+    console.error('getAdminServices error', err);
+    return [];
+  }
+}
+
 /* ===== FEEDBACKS ===== */
 export const getReviews = async () => {
   try {
-    const res = await request("/feedback/admin");
-    const rows = res?.data || [];
+    const res = await request("/admin/feedback", { auth: true });
+    const rows = res?.data || res || [];
     return rows.map((f) => ({
       id: f.feedback_id || f.id,
-      name: `User #${f.user_id}`,
-      pet: "",
-      content: f.message || f.content || "",
-      rating: 5,
+      name: f.user_name || `User #${f.user_id}`,
+      pet: f.pet_name || "",
+      content: f.content || f.message || "",
+      rating: Number(f.rating) || 5,
     }));
   } catch (err) {
     console.error('getReviews error', err);
@@ -342,11 +358,6 @@ export async function getMyAppointments() {
     // Use standardized user-scoped endpoint
     const res = await request("/user/appointments");
     const rows = res?.data || res;
-
-    // No development mock fallbacks — return whatever backend provides
-    // If backend returns empty array, the UI will handle it.
-
-
     return rows;
   } catch (err) {
     console.error('getMyAppointments error', err);
@@ -581,24 +592,58 @@ export async function updateVaccination(vaxId, payload) {
   }
 }
 
+function _normalizeStatus(raw) {
+  if (!raw) return '-';
+  const s = raw.toString().toLowerCase();
+  if (s.includes('chờ')) return 'Đang chờ';
+  if (s.includes('đang khám') || s.includes('in progress')) return 'Đang khám';
+  if (s.includes('đã xong') || s.includes('hoàn thành') || s.includes('completed')) return 'Đã xong';
+  if (s.includes('hủy')) return 'Đã hủy';
+  return raw;
+}
+
+function _formatVN(iso) {
+  if (!iso) return null;
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+  } catch (e) {
+    return iso;
+  }
+}
+
 export async function getAdminAppointments() {
   try {
     const res = await request('/admin/appointments');
     const data = res?.data || [];
     if (data.length === 0) return [];
     return data.map(r => ({
-      id: r.appointment_id || r.slot_id || null,
+      // Prefer slot_id as the unique visit id when available
+      id: r.slot_id || r.appointment_id || null,
       appointment_id: r.appointment_id || null,
       slotId: r.slot_id || null,
-      petName: r.pet_name || (r.pet && r.pet.name) || '-',
+      petName: r.pet_name || (r.pet && (r.pet.name || r.pet.pet_name)) || '-',
       ownerName: r.user_name || (r.user && `${r.user.first_name || ''} ${r.user.last_name || ''}`.trim()) || '-',
+      // date/time fields: provide both ISO and VN-formatted display string
       date: r.booking_date || r.bookingDate || null,
-      time: r.check_in ? (new Date(r.check_in)).toLocaleString() : (r.timeslot || ''),
-      checkIn: r.check_in ? (new Date(r.check_in)).toLocaleString() : null,
-      checkOut: r.check_out ? (new Date(r.check_out)).toLocaleString() : null,
-      doctor: r.doctor_name || (r.doctor && r.doctor.doctor_name) || '-',
+      time: r.check_in ? _formatVN(r.check_in) : (r.timeslot || ''),
+      checkIn: r.check_in ? _formatVN(r.check_in) : (r.check_in || null),
+      checkInIso: r.check_in || null,
+      checkOut: r.check_out ? _formatVN(r.check_out) : (r.check_out || null),
+      checkOutIso: r.check_out || null,
+      doctorName: r.doctor_name || (r.doctor && (r.doctor.doctor_name || r.doctor.name)) || '-',
+      doctorId: r.doctor_id || (r.doctor && (r.doctor.doctor_id || r.doctor.id)) || null,
+      // Backwards compatibility
+      doctor: r.doctor_name || (r.doctor && (r.doctor.doctor_name || r.doctor.name)) || '-',
       service: r.service || '-',
-      status: r.status || '-'
+      status: _normalizeStatus(r.status),
+      user_id: r.user_id || null
     }));
   } catch (err) {
     console.error('getAdminAppointments error', err);
@@ -667,7 +712,7 @@ export async function getDoctorsSchedule() {
 
 export async function getFeedbackStats() {
   try {
-    const res = await request('/admin/feedback/stats');
+    const res = await request('/admin/feedback/stats', { auth: true });
     return res?.data || {};
   } catch (err) {
     console.error('getFeedbackStats error', err);
@@ -677,7 +722,7 @@ export async function getFeedbackStats() {
 
 export async function getFeedbackList() {
   try {
-    const res = await request('/admin/feedback');
+    const res = await request('/admin/feedback', { auth: true });
     return res?.data || [];
   } catch (err) {
     console.error('getFeedbackList error', err);
@@ -687,7 +732,7 @@ export async function getFeedbackList() {
 
 export async function updateFeedbackStatus(feedbackId, status) {
   try {
-    const res = await request(`/admin/feedback/${feedbackId}/status`, { method: 'PATCH', body: { status } });
+    const res = await request(`/admin/feedback/${feedbackId}/status`, { method: 'PATCH', body: { status }, auth: true });
     return res?.message || 'OK';
   } catch (err) {
     throw err;
@@ -727,10 +772,27 @@ export async function getInvoiceDetails(invoiceId) {
 
 export async function downloadInvoicePDF(invoiceId) {
   try {
-    const res = await request(`/admin/invoices/download_pdf/${invoiceId}`);
-    // Assuming it returns a file, but since it's fetch, handle accordingly
-    return res;
+    const res = await fetch(`${BASE}/admin/invoices/download_pdf/${invoiceId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth') ? JSON.parse(localStorage.getItem('auth')).accessToken : ''}`,
+      },
+    });
+
+    if (!res.ok) throw new Error('Download failed');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoice_${invoiceId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    return true;
   } catch (err) {
+    console.error('downloadInvoicePDF error', err);
     throw err;
   }
 }
@@ -752,6 +814,44 @@ export async function getSlotsStats() {
   } catch (err) {
     console.error('getSlotsStats error', err);
     return {};
+  }
+}
+
+export async function updateSlotCheckout(slotId, payload) {
+  try {
+    // Use the dedicated checkout endpoint
+    const res = await request(`/admin/slots/${slotId}/checkout`, { method: 'PATCH', body: payload });
+    return res?.data || res;
+  } catch (err) {
+    throw err;
+  }
+}
+
+export async function updateSlotStatus(slotId, status) {
+  try {
+    const res = await request(`/admin/slots/${slotId}/status`, { method: 'PUT', body: { status } });
+    return res?.data || res;
+  } catch (err) {
+    throw err;
+  }
+}
+
+export async function getUserPets(userId) {
+  try {
+    const res = await request(`/admin/users/${userId}/pets`);
+    return res?.data || [];
+  } catch (err) {
+    console.error('getUserPets error', err);
+    return [];
+  }
+}
+
+export async function createPatientReport(slotId, payload) {
+  try {
+    const res = await request(`/admin/slots/${slotId}/report`, { method: 'POST', body: payload });
+    return res?.data || res;
+  } catch (err) {
+    throw err;
   }
 }
 
@@ -836,6 +936,25 @@ export const api = {
       }));
     } catch (err) {
       console.error('api.getServices error', err);
+      return [];
+    }
+  },
+
+  // Backwards-compatible accessors for admin pages
+  getAdminServices: async () => {
+    try {
+      return await getAdminServices();
+    } catch (err) {
+      console.error('api.getAdminServices error', err);
+      return [];
+    }
+  },
+
+  getAdminDoctors: async () => {
+    try {
+      return await getAdminDoctors();
+    } catch (err) {
+      console.error('api.getAdminDoctors error', err);
       return [];
     }
   },
@@ -930,7 +1049,7 @@ export const api = {
         petName: r.pet_name,
         ownerName: r.user_name,
         doctorName: r.doctor_name,
-        status: r.status,
+        status: _normalizeStatus(r.status),
         // Add other fields if available, else defaults
         serviceType: r.serviceType || 'Medical Service',
         reportDate: r.check_in ? new Date(r.check_in).toLocaleDateString() : '',
@@ -988,7 +1107,7 @@ export const api = {
         frequency: data.frequency,
         medicalCondition: data.medicalCondition,
         images: data.images || [],
-        status: data.status
+        status: _normalizeStatus(data.status)
       };
     } catch (err) {
       console.error('api.getMedicalRecordByReportId error', err);
@@ -1058,7 +1177,7 @@ export async function getStats() {
 
 export async function getTodayAppointments() {
   try {
-    const res = await request('/admin/overview/appointments-today', { auth: true });
+    const res = await request('/admin/appointments', { auth: true });
     return res?.data || {};
   } catch (err) {
     console.error('getTodayAppointments error', err);
@@ -1188,7 +1307,7 @@ export async function getMedicalRecords() {
       petName: r.pet_name,
       ownerName: r.user_name,
       doctorName: r.doctor_name,
-      status: r.status,
+      status: _normalizeStatus(r.status),
       // Add other fields if available, else defaults
       serviceType: r.serviceType || 'Medical Service',
       reportDate: r.check_in ? new Date(r.check_in).toLocaleDateString() : '',
@@ -1232,7 +1351,7 @@ export async function getMedicalRecordByReportId(reportId) {
       frequency: data.frequency,
       medicalCondition: data.medicalCondition,
       images: data.images || [],
-      status: data.status
+      status: _normalizeStatus(data.status)
     };
   } catch (err) {
     console.error('getMedicalRecordByReportId (named) error', err);

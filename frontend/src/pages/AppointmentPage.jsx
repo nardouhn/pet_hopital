@@ -85,7 +85,7 @@ export default function AppointmentHistory() {
               const doctorName =
                 appt.doctor_name ||
                 appt.doctorName ||
-                (appt.doctor && (appt.doctor.name || appt.doctor.full_name || appt.doctor.displayName)) ||
+                (appt.doctor && (appt.doctor.name || appt.doctor.full_name || appt.doctor.displayName || appt.doctor_name)) ||
                 (appt.doctor_id ? `BS. #${appt.doctor_id}` : null) ||
                 (typeof appt.doctor === 'string' ? appt.doctor : null) ||
                 null;

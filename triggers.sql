@@ -42,12 +42,6 @@ DECLARE
     v_start_time TIME;
     v_end_time TIME;
 BEGIN
-    /* Chọn doctor_slot:
-       - đúng ngày
-       - shift != NONE
-       - ưu tiên doctor_slot chưa có slot
-       - hoặc slot gần nhất đã xong
-    */
     SELECT ds.doctor_slot_id, ds.shift
     INTO v_doctor_slot_id, v_shift
     FROM doctor_slot ds
@@ -61,13 +55,11 @@ BEGIN
     LIMIT 1;
 
     IF v_doctor_slot_id IS NULL THEN
-        UPDATE appointment
-        SET status = 'Đã hủy lịch hẹn'
-        WHERE appointment_id = NEW.appointment_id;
-        RETURN NULL;
+        RAISE EXCEPTION
+            'No available doctor_slot on % for appointment %',
+            NEW.check_in::date, NEW.appointment_id;
     END IF;
 
-    /* Map shift → thời gian */
     IF v_shift = '9-12'  THEN v_start_time := '09:00'; v_end_time := '12:00';
     ELSIF v_shift = '9-13' THEN v_start_time := '09:00'; v_end_time := '13:00';
     ELSIF v_shift = '9-17' THEN v_start_time := '09:00'; v_end_time := '17:00';
@@ -75,19 +67,14 @@ BEGIN
     ELSIF v_shift = '12-18' THEN v_start_time := '12:00'; v_end_time := '18:00';
     ELSIF v_shift = '13-18' THEN v_start_time := '13:00'; v_end_time := '18:00';
     ELSE
-        UPDATE appointment
-        SET status = 'Đã hủy lịch hẹn'
-        WHERE appointment_id = NEW.appointment_id;
-        RETURN NULL;
+        RAISE EXCEPTION 'Invalid doctor shift %', v_shift;
     END IF;
 
-    /* Check check_in nằm trong ca */
     IF NEW.check_in::time < v_start_time
        OR NEW.check_in::time > v_end_time THEN
-        UPDATE appointment
-        SET status = 'Đã hủy lịch hẹn'
-        WHERE appointment_id = NEW.appointment_id;
-        RETURN NULL;
+        RAISE EXCEPTION
+            'check_in % outside shift % (% - %)',
+            NEW.check_in::time, v_shift, v_start_time, v_end_time;
     END IF;
 
     NEW.doctor_slot_id := v_doctor_slot_id;
@@ -96,6 +83,7 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
 
 CREATE TRIGGER before_insert_slot_assign_doctor
 BEFORE INSERT ON slot
@@ -199,16 +187,17 @@ EXECUTE FUNCTION trg_validate_check_out();
 CREATE OR REPLACE FUNCTION trg_sync_report_to_slot()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.status = 'Đã khám xong' THEN
+    IF NEW.status = 'Đã khám xong'
+       AND OLD.status IS DISTINCT FROM 'Đã khám xong' THEN
         UPDATE slot
         SET status = 'Đã xong'
-        WHERE slot_id = NEW.slot_id
-          AND status <> 'Đã xong';
+        WHERE slot_id = NEW.slot_id;
     END IF;
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
 
 DROP TRIGGER IF EXISTS after_update_report_sync_slot ON patient_report;
 
@@ -300,3 +289,4 @@ CREATE TRIGGER after_update_pet_hotel_checkout
 AFTER UPDATE OF check_out ON pet_hotel
 FOR EACH ROW
 EXECUTE FUNCTION trg_update_invoice_hotel_total();
+

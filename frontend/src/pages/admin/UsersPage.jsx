@@ -52,7 +52,7 @@ export default function UsersPage() {
   };
 
   const handleDeleteUser = async (userId) => {
-    if (confirm('Are you sure you want to delete this user?')) {
+    if (confirm('Bạn có chắc chắn muốn xoá người dùng không?')) {
       try {
         await deleteUser(userId);
         await fetchUsers();
@@ -112,19 +112,19 @@ export default function UsersPage() {
             <thead className="border-b border-gray-100">
               <tr className="bg-gray-50">
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                  User
+                  Tên người dùng
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                  Pets
+                  Thú cưng
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                  Contact
+                  Liên hệ
                 </th>
                 {/* <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
                   Joined
                 </th> */}
                 <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">
-                  Actions
+                  Hành động
                 </th>
               </tr>
             </thead>
@@ -230,7 +230,7 @@ export default function UsersPage() {
                                 className="flex items-center px-4 py-2 text-sm text-red-700 hover:bg-gray-100 w-full"
                               >
                                 <Trash2 className="size-4 mr-2" />
-                                Delete User
+                                Xoá người dùng
                               </button>
                             </div>
                           </div>

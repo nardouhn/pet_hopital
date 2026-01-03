@@ -158,7 +158,11 @@ const [appointments, setAppointments] = useState([]);
   const toIsoDate = (raw) => {
     if (!raw) return null;
     const dt = new Date(raw);
-    return isNaN(dt.getTime()) ? null : dt.toISOString().slice(0, 10);
+    if (isNaN(dt.getTime())) return null;
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, "0");
+    const d = String(dt.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
   };
 
   // stats
@@ -401,10 +405,8 @@ const [appointments, setAppointments] = useState([]);
                 <div className="flex items-center gap-6">
                   {/* Time Badge */}
                   <div className="flex-shrink-0 bg-teal-500 text-white rounded-xl p-4 text-center min-w-[80px]">
-                    <div className="text-xs opacity-90 mb-1">11:00 AM</div>
-                    <div className="text-base font-bold">
-                      {appointment.time}
-                    </div>
+                    <div className="text-xs opacity-90 mb-1">{toIsoDate(appointment.date) || "—"}</div>
+                    <div className="text-base font-bold">{appointment.time}</div>
                   </div>
 
                   {/* Pet & Owner Info */}
@@ -441,7 +443,7 @@ const [appointments, setAppointments] = useState([]);
                     </p>
                     <div className="flex items-center gap-2 text-sm text-gray-700">
                       <Calendar className="size-4 text-gray-400" />
-                      <span>{appointment.date}</span>
+                      <span>{toIsoDate(appointment.date)}</span>
                     </div>
                   </div>
 

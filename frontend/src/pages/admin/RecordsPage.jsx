@@ -28,6 +28,27 @@ export default function RecordsPage() {
   const [serviceFilter, setServiceFilter] = useState("all");
   const [doctorFilter, setDoctorFilter] = useState("all");
 
+  // Options loaded from backend
+  const [servicesOptions, setServicesOptions] = useState([]);
+  const [doctorsOptions, setDoctorsOptions] = useState([]);
+
+  useEffect(() => {
+    // Load services and doctors for filters; fall back to empty arrays on error
+    api.getAdminServices()
+      .then((rows) => setServicesOptions(rows || []))
+      .catch((e) => {
+        console.error('Failed to load services', e);
+        setServicesOptions([]);
+      });
+
+    api.getAdminDoctors()
+      .then((rows) => setDoctorsOptions(rows || []))
+      .catch((e) => {
+        console.error('Failed to load doctors', e);
+        setDoctorsOptions([]);
+      });
+  }, []);
+
   useEffect(() => {
     setLoading(true);
     Promise.all([api.getMedicalRecords(), api.getReportsStats()])
@@ -49,6 +70,37 @@ export default function RecordsPage() {
     }
   }, [selectedReportId]);
 
+  // Format helpers (Vietnamese format: DD/MM/YYYY and HH:MM)
+  const formatVNDate = (iso) => {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    } catch (e) {
+      return iso;
+    }
+  };
+
+  const formatVNTime = (isoOrTime) => {
+    if (!isoOrTime) return '—';
+    try {
+      // If already HH:MM or HH:MM:SS, return HH:MM
+      const m = String(isoOrTime).match(/^(\d{1,2}:\d{2})/);
+      if (m) return m[1];
+      const d = new Date(isoOrTime);
+      if (Number.isNaN(d.getTime())) return isoOrTime;
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      return `${hh}:${mm}`;
+    } catch (e) {
+      return isoOrTime;
+    }
+  };
+
   // Calculate stats
   const totalRecords = stats.totalReports || records.length;
   const recordsThisMonth = records.filter((r) => {
@@ -65,7 +117,7 @@ export default function RecordsPage() {
       record.petName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       record.ownerName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
-      statusFilter === "all" || record.status === statusFilter;
+      statusFilter === "all" || (record.status && record.status.trim() === statusFilter);
     const matchesService =
       serviceFilter === "all" || record.serviceType === serviceFilter;
     const matchesDoctor =
@@ -76,9 +128,9 @@ export default function RecordsPage() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Đã xong":
+      case "Đã khám xong":
         return "bg-green-100 text-green-700";
-      case "Đang chờ":
+      case "Đang chờ khám":
         return "bg-yellow-100 text-yellow-700";
       case "Đang khám":
         return "bg-blue-100 text-blue-700";
@@ -130,21 +182,21 @@ export default function RecordsPage() {
             <div className="flex items-center gap-4 mt-2">
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Calendar className="size-4" />
-                <span>{selectedRecord.reportDate}</span>
+                <span>{formatVNDate(selectedRecord.reportDate)}</span>
                 <span>•</span>
                 <Clock className="size-4" />
-                <span>{selectedRecord.reportTime}</span>
+                <span>{formatVNTime(selectedRecord.reportTime || selectedRecord.reportDate)}</span>
               </div>
-              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                Đã hoàn thành
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedRecord.status)}`}>
+                {selectedRecord.status}
               </span>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+            {/* <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
               <Printer className="size-4" />
               <span>Print</span>
-            </button>
+            </button> */}
             <button
               onClick={() => api.downloadReportPdf(selectedRecord.reportId)}
               className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors"
@@ -413,7 +465,7 @@ export default function RecordsPage() {
 
         {/* Filters */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search */}
             <div>
               <label className="block text-sm text-gray-600 mb-2">
@@ -429,7 +481,7 @@ export default function RecordsPage() {
             </div>
 
             {/* Date Range */}
-            <div>
+            {/* <div>
               <label className="block text-sm text-gray-600 mb-2">
                 Date Range
               </label>
@@ -440,7 +492,7 @@ export default function RecordsPage() {
                 placeholder="Select date range"
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200"
               />
-            </div>
+            </div> */}
 
             {/* All Status */}
             <div>
@@ -453,14 +505,14 @@ export default function RecordsPage() {
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200"
               >
                 <option value="all">All Status</option>
-                <option value="Đã xong">Đã xong</option>
-                <option value="Đang chờ">Đang chờ</option>
+                <option value="Đã khám xong">Đã khám xong</option>
+                <option value="Đang chờ khám">Đang chờ khám</option>
                 <option value="Đang khám">Đang khám</option>
               </select>
             </div>
 
             {/* All Services */}
-            <div>
+            {/* <div>
               <label className="block text-sm text-gray-600 mb-2">
                 All Services
               </label>
@@ -470,13 +522,23 @@ export default function RecordsPage() {
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200"
               >
                 <option value="all">All Services</option>
-                <option value="Khám tổng quát">Khám tổng quát</option>
-                <option value="Tiêm vacxin">Tiêm vacxin</option>
-                <option value="Khám răng">Khám răng</option>
-                <option value="Cấp cứu">Cấp cứu</option>
-                <option value="Da liễu">Da liễu</option>
+                {servicesOptions && servicesOptions.length > 0 ? (
+                  servicesOptions.map((s) => (
+                    <option key={s.id} value={s.name}>
+                      {s.name}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="Khám tổng quát">Khám tổng quát</option>
+                    <option value="Tiêm vacxin">Tiêm vacxin</option>
+                    <option value="Khám răng">Khám răng</option>
+                    <option value="Cấp cứu">Cấp cứu</option>
+                    <option value="Da liễu">Da liễu</option>
+                  </>
+                )}
               </select>
-            </div>
+            </div> */}
 
             {/* All Doctors */}
             <div>
@@ -489,9 +551,19 @@ export default function RecordsPage() {
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200"
               >
                 <option value="all">All Doctors</option>
-                <option value="Dr. Emily Carter">Dr. Emily Carter</option>
-                <option value="Dr. James Wilson">Dr. James Wilson</option>
-                <option value="Dr. Sarah Martinez">Dr. Sarah Martinez</option>
+                {doctorsOptions && doctorsOptions.length > 0 ? (
+                  doctorsOptions.map((d) => (
+                    <option key={d.id} value={d.name}>
+                      {d.name}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="Dr. Emily Carter">Dr. Emily Carter</option>
+                    <option value="Dr. James Wilson">Dr. James Wilson</option>
+                    <option value="Dr. Sarah Martinez">Dr. Sarah Martinez</option>
+                  </>
+                )}
               </select>
             </div>
           </div>
@@ -515,12 +587,12 @@ export default function RecordsPage() {
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     DOCTOR
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {/* <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     SERVICE
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  </th> */}
+                  {/* <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     REPORT DATE
-                  </th>
+                  </th> */}
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     STATUS
                   </th>
@@ -559,17 +631,17 @@ export default function RecordsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {record.doctorName}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {record.serviceType}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    </td> */}
+                    {/* <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         {record.reportDate}
                       </div>
                       <div className="text-xs text-gray-500">
                         {record.reportTime}
                       </div>
-                    </td>
+                    </td> */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
@@ -595,11 +667,11 @@ export default function RecordsPage() {
 
           {/* Pagination */}
           <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-            <span className="text-sm text-gray-600">
+            {/* <span className="text-sm text-gray-600">
               Showing 1 to 5 of {filteredRecords.length} reports
-            </span>
+            </span> */}
             <div className="flex items-center gap-2">
-              <button className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+              {/* <button className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
                 Previous
               </button>
               <button className="px-3 py-1.5 text-sm bg-teal-500 text-white rounded-lg">
@@ -607,10 +679,10 @@ export default function RecordsPage() {
               </button>
               <button className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
                 2
-              </button>
-              <button className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+              </button> */}
+              {/* <button className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
                 Next
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
@@ -628,21 +700,21 @@ export default function RecordsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Total Reports */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-start justify-between mb-4">
             <div className="p-3 bg-teal-50 rounded-xl">
               <FileText className="size-6 text-teal-600" />
             </div>
-            <span className="text-xs text-teal-600 font-medium">+12%</span>
+            <span className="text-xs text-teal-600 font-medium"></span>
           </div>
           <p className="text-sm text-gray-600 mb-2">Tổng số</p>
           <p className="text-3xl font-bold text-gray-900">{totalRecords}</p>
         </div>
 
         {/* This Month */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        {/* <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-start justify-between mb-4">
             <div className="p-3 bg-blue-50 rounded-xl">
               <TrendingUp className="size-6 text-blue-600" />
@@ -651,7 +723,7 @@ export default function RecordsPage() {
           </div>
           <p className="text-sm text-gray-600 mb-2">Số lượng tháng này</p>
           <p className="text-3xl font-bold text-gray-900">{recordsThisMonth}</p>
-        </div>
+        </div> */}
 
         {/* Pending */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -660,8 +732,8 @@ export default function RecordsPage() {
               <Clock className="size-6 text-yellow-600" />
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-2">Những đơn đang chờ</p>
-          <p className="text-3xl font-bold text-gray-900">{pendingRecords}</p>
+          <p className="text-sm text-gray-600 mb-2">Đã hoàn thành</p>
+          <p className="text-3xl font-bold text-gray-900">{totalRecords-pendingRecords}</p>
         </div>
       </div>
 
@@ -719,7 +791,7 @@ export default function RecordsPage() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 mb-1">Date:</p>
-                  <p className="text-sm text-gray-700">{record.reportDate}</p>
+                  <p className="text-sm text-gray-700">{formatVNDate(record.reportDate)}</p>
                 </div>
               </div>
 

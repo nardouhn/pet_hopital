@@ -63,7 +63,7 @@ const Booking = () => {
         petName: form.petName,
         petBreed: form.petType,
         service: form.service,
-        date: form.date.toISOString().split("T")[0],
+        date: `${form.date.getFullYear()}-${String(form.date.getMonth() + 1).padStart(2, "0")}-${String(form.date.getDate()).padStart(2, "0")}`,
         timeslot: form.timeSlot,
         description: form.description,
       };

@@ -19,10 +19,23 @@ export default defineConfig({
     port: 5173,
     proxy: {
       // Proxy API-like routes to the configured backend target. In Docker use VITE_DEV_PROXY_TARGET=http://backend:8080
+      // Bypass proxy when the request expects HTML (so SPA direct reloads /admin/... return index.html)
       '^/(api|admin|auth|user|doctor|feedback|vaccination|appointments|invoices)(.*)': {
         target: proxyTarget,
         changeOrigin: true,
         secure: false,
+        bypass: (req, res, options) => {
+          try {
+            const accept = req.headers && req.headers.accept;
+            if (accept && accept.indexOf('text/html') !== -1) {
+              // Tell Vite to serve index.html instead of proxying
+              return '/index.html';
+            }
+          } catch (e) {
+            // fallback to proxy
+          }
+          return null;
+        }
       },
     },
   },

@@ -754,25 +754,43 @@ ON CONFLICT (report_id, diagnose_id) DO NOTHING;
 
 
 
+-- UPDATE invoice i
+-- SET total = t.service_total + t.medicine_total
+-- FROM (
+--     SELECT
+--         pr.report_id,
+--         COALESCE(SUM(s.price), 0) AS service_total,
+--         COALESCE(SUM(m.price * rm.quantity), 0) AS medicine_total
+--     FROM patient_report pr
+--     LEFT JOIN report_service rs
+--         ON pr.report_id = rs.report_id
+--     LEFT JOIN service s
+--         ON rs.service_id = s.service_id
+--     LEFT JOIN report_medicine rm
+--         ON pr.report_id = rm.report_id
+--     LEFT JOIN medicine m
+--         ON rm.medicine_id = m.medicine_id
+--     GROUP BY pr.report_id
+-- ) t
+-- WHERE i.report_id = t.report_id;
+
 UPDATE invoice i
-SET total = t.service_total + t.medicine_total
-FROM (
-    SELECT
-        pr.report_id,
-        COALESCE(SUM(s.price), 0) AS service_total,
-        COALESCE(SUM(m.price * rm.quantity), 0) AS medicine_total
-    FROM patient_report pr
-    LEFT JOIN report_service rs
-        ON pr.report_id = rs.report_id
-    LEFT JOIN service s
-        ON rs.service_id = s.service_id
-    LEFT JOIN report_medicine rm
-        ON pr.report_id = rm.report_id
-    LEFT JOIN medicine m
-        ON rm.medicine_id = m.medicine_id
-    GROUP BY pr.report_id
-) t
-WHERE i.report_id = t.report_id;
+SET total = st.service_total + mt.medicine_total
+FROM patient_report pr
+CROSS JOIN LATERAL (
+    SELECT COALESCE(SUM(s.price), 0) AS service_total
+    FROM report_service rs
+    JOIN service s ON s.service_id = rs.service_id
+    WHERE rs.report_id = pr.report_id
+) st
+CROSS JOIN LATERAL (
+    SELECT COALESCE(SUM(m.price * rm.quantity), 0) AS medicine_total
+    FROM report_medicine rm
+    JOIN medicine m ON m.medicine_id = rm.medicine_id
+    WHERE rm.report_id = pr.report_id
+) mt
+WHERE i.report_id = pr.report_id;
+
 
 -- Seed feedback
 INSERT INTO feedback (

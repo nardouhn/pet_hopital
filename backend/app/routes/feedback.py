@@ -8,15 +8,47 @@ fb_bp = Blueprint('feedback', __name__)
 @fb_bp.route('/', methods=['POST'])
 def submit_feedback():
     data = request.get_json() or {}
-    message = data.get('message')
-    subject = data.get('subject')
+
+    # Accept multiple possible field names from frontend/clients
+    message = (
+        data.get('message')
+        or data.get('comment')
+        or data.get('content')
+        or data.get('feedback')
+        or ''
+    )
+
+    subject = (
+        data.get('subject')
+        or data.get('petName')
+        or data.get('pet_name')
+        or data.get('pet')
+        or ''
+    )
+
+    # Normalize rating to allowed enum values '1'..'5'
+    raw_rating = data.get('rating')
+    rating = '5'
+    if raw_rating is not None:
+        try:
+            r = str(raw_rating).strip()
+            if r in ['1', '2', '3', '4', '5']:
+                rating = r
+        except Exception:
+            pass
+
+    # Allow optional status override if valid
+    status = data.get('status')
+    if status not in ['Hidden', 'Show']:
+        status = 'Show'
+
     user_id = getattr(g, 'user_id', None)
-    from ..utils.validate import require_fields
-    missing = require_fields(data, [])
-    # no required fields, but normalize inputs
-    f = Feedback(user_id=user_id, rating='5', status='Show', content=message or '', pet_name=subject or '')
+
+    # Create Feedback record (pet_name is non-nullable in DB so ensure string)
+    f = Feedback(user_id=user_id, rating=rating, status=status, content=message or '', pet_name=subject or '')
     db.session.add(f)
     db.session.commit()
+
     return jsonify({'message': 'Feedback submitted', 'data': f.to_dict()}), 201
 
 @fb_bp.route('/my', methods=['GET'])

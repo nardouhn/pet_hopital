@@ -2,15 +2,12 @@ import { useState, useEffect } from "react";
 import {
   DollarSign,
   CheckCircle,
-  Clock,
-  AlertCircle,
   Eye,
   Download,
   ArrowLeft,
-  Printer,
   RotateCcw,
 } from "lucide-react";
-import { api, getInvoicesList, getInvoiceDetails } from "@/api/mockApi";
+import { api, getInvoicesList, getInvoiceDetails, downloadInvoicePDF } from "@/api/mockApi";
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -55,23 +52,7 @@ export default function InvoicesPage() {
 
   // Calculate stats
   const totalRevenue = invoices.reduce((sum, inv) => sum + inv.amount, 0);
-  const paidAmount = invoices
-    .filter((inv) => inv.status === "Paid")
-    .reduce((sum, inv) => sum + inv.amount, 0);
-  const pendingAmount = invoices
-    .filter((inv) => inv.status === "Pending")
-    .reduce((sum, inv) => sum + inv.amount, 0);
-  const overdueAmount = invoices
-    .filter((inv) => inv.status === "Overdue")
-    .reduce((sum, inv) => sum + inv.amount, 0);
-
-  const paidCount = invoices.filter((inv) => inv.status === "Paid").length;
-  const pendingCount = invoices.filter(
-    (inv) => inv.status === "Pending"
-  ).length;
-  const overdueCount = invoices.filter(
-    (inv) => inv.status === "Overdue"
-  ).length;
+  const totalOrders = invoices.length;
 
   // Apply filters (none needed as filtered from API)
   const filteredInvoices = invoices;
@@ -218,10 +199,10 @@ export default function InvoicesPage() {
 
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span className="text-gray-900">
+                  {/* <span className="text-gray-600">Subtotal</span> */}
+                  {/* <span className="text-gray-900">
                     {selectedInvoice.subtotal.toLocaleString()}
-                  </span>
+                  </span> */}
                 </div>
                 {/* <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Tax</span>
@@ -260,11 +241,14 @@ export default function InvoicesPage() {
 
             {/* Action Buttons */}
             <div className="flex items-center gap-3">
-              <button className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+              {/* <button className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
                 <Printer className="size-4" />
                 <span>Print Invoice</span>
-              </button>
-              <button className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+              </button> */}
+              <button
+                onClick={() => downloadInvoicePDF(selectedInvoice.invoiceId)}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+              >
                 <Download className="size-4" />
                 <span>Download PDF</span>
               </button>
@@ -355,68 +339,43 @@ export default function InvoicesPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Total Orders */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-3 bg-blue-50 rounded-xl">
+              <CheckCircle className="size-6 text-blue-600" />
+            </div>
+            <span className="text-xs text-green-600 font-medium"></span>
+          </div>
+          <p className="text-sm text-gray-600 mb-2">Tổng số đơn</p>
+          <p className="text-3xl font-bold text-gray-900">
+            {totalOrders}
+          </p>
+          <p className="text-xs text-gray-500 mt-1"></p>
+        </div>
+
         {/* Total Revenue */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-start justify-between mb-4">
             <div className="p-3 bg-teal-50 rounded-xl">
               <DollarSign className="size-6 text-teal-600" />
             </div>
-            <span className="text-xs text-green-600 font-medium">+18.1%</span>
+            <span className="text-xs text-green-600 font-medium"></span>
           </div>
-          <p className="text-sm text-gray-600 mb-2">Total Revenue</p>
+          <p className="text-sm text-gray-600 mb-2">Tổng doanh thu</p>
           <p className="text-3xl font-bold text-gray-900">
-            {totalRevenue.toLocaleString()}đ 
+            {totalRevenue.toLocaleString()}đ
           </p>
-          <p className="text-xs text-gray-500 mt-1">+12% this month</p>
-        </div>
-
-        {/* Paid */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-blue-50 rounded-xl">
-              <CheckCircle className="size-6 text-blue-600" />
-            </div>
-          </div>
-          <p className="text-sm text-gray-600 mb-2">Paid</p>
-          <p className="text-3xl font-bold text-gray-900">
-            {paidAmount.toLocaleString()}đ
-          </p>
-          <p className="text-xs text-gray-500 mt-1">{paidCount} invoices</p>
-        </div>
-
-        {/* Pending */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-yellow-50 rounded-xl">
-              <Clock className="size-6 text-yellow-600" />
-            </div>
-          </div>
-          <p className="text-sm text-gray-600 mb-2">Pending</p>
-          <p className="text-3xl font-bold text-gray-900">
-            {pendingAmount.toLocaleString()}đ
-          </p>
-          <p className="text-xs text-gray-500 mt-1">{pendingCount} invoices</p>
-        </div>
-
-        {/* Overdue */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-red-50 rounded-xl">
-              <AlertCircle className="size-6 text-red-600" />
-            </div>
-          </div>
-          <p className="text-sm text-gray-600 mb-2">Overdue</p>
-          <p className="text-3xl font-bold text-gray-900">
-            {overdueAmount.toLocaleString()}đ
-          </p>
-          <p className="text-xs text-gray-500 mt-1">{overdueCount} invoices</p>
+          <p className="text-xs text-gray-500 mt-1"></p>
         </div>
       </div>
 
       {/* Filters Section */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           {/* Date */}
           <div>
             <label className="block text-sm text-gray-600 mb-2">Date</label>
@@ -441,6 +400,7 @@ export default function InvoicesPage() {
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-200"
             />
           </div>
+        
 
           {/* Placeholder */}
           <div></div>
@@ -448,12 +408,12 @@ export default function InvoicesPage() {
 
         {/* Filter Buttons */}
         <div className="flex items-center gap-3">
-          <button
+          {/* <button
             onClick={fetchInvoices}
             className="flex items-center gap-2 px-6 py-2.5 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors"
           >
             Apply Filters
-          </button>
+          </button> */}
           <button
             onClick={handleReset}
             className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
@@ -551,7 +511,7 @@ export default function InvoicesPage() {
                         >
                           <Eye className="size-4" />
                         </button>
-                        <button className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors">
+                        <button onClick={() => downloadInvoicePDF(invoice.invoiceId)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors">
                           <Download className="size-4" />
                         </button>
                       </div>

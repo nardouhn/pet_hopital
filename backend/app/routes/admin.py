@@ -113,28 +113,45 @@ def list_appointments():
             except Exception:
                 pet_name = None
 
+            # Extract doctor info robustly (try multiple sources)
             doctor_name = None
+            doctor_id = None
             try:
-                doctor_name = getattr(appt.doctor, 'doctor_name', None)
+                # 1) appointment.doctor relationship
+                doc = getattr(appt, 'doctor', None)
+                if doc:
+                    doctor_name = getattr(doc, 'doctor_name', None) or getattr(doc, 'name', None) or str(doc)
+                    doctor_id = getattr(doc, 'doctor_id', None)
+
+                # 2) direct field on appointment (legacy)
+                if not doctor_name and getattr(appt, 'doctor_name', None):
+                    doctor_name = appt.doctor_name
+
+                # 3) fallback: slot -> doctor_slot -> doctor
+                slot = getattr(appt, 'slot', None)
+                if not doctor_name and slot and getattr(slot, 'doctor_slot', None):
+                    ds = slot.doctor_slot
+                    if ds and getattr(ds, 'doctor', None):
+                        d = ds.doctor
+                        doctor_name = getattr(d, 'doctor_name', None) or getattr(d, 'name', None) or str(d)
+                        doctor_id = getattr(d, 'doctor_id', None)
             except Exception:
                 doctor_name = None
+                doctor_id = None
 
-            slot = getattr(appt, 'slot', None)
-            
-            # For visits, use slot status if available, otherwise use appointment status
-            # Map slot status to visit status format
+            # For visits, prefer slot.status when available, otherwise use appointment.status
+            # Normalize to the canonical set: 'Đang chờ', 'Đang khám', 'Đã xong'
             visit_status = appt.status
             if slot and slot.status:
                 slot_status = slot.status
-                # Map slot status to match frontend expectations
                 if slot_status == 'Đang chờ':
-                    visit_status = 'Chờ'
+                    visit_status = 'Đang chờ'
                 elif slot_status == 'Đang khám':
                     visit_status = 'Đang khám'
                 elif slot_status == 'Đã xong':
-                    visit_status = 'Hoàn thành'
+                    visit_status = 'Đã xong'
                 else:
-                    visit_status = slot_status
+                    visit_status = slot_status or visit_status
 
             # Get service from patient_report -> report_services -> service if available
             # Otherwise fall back to appointment.service
@@ -155,6 +172,7 @@ def list_appointments():
             data.append({
                 'appointment_id': appt.appointment_id,
                 'slot_id': getattr(slot, 'slot_id', None),
+                'user_id': user.user_id,
                 'check_in': slot.check_in.isoformat() if slot and slot.check_in else None,
                 'check_out': slot.check_out.isoformat() if slot and slot.check_out else None,
                 'user_name': f"{user.first_name} {user.last_name}",
@@ -164,6 +182,7 @@ def list_appointments():
                 'created_at': appt.created_at.isoformat() if appt.created_at else None,
                 'pet_name': pet_name,
                 'doctor_name': doctor_name,
+                'doctor_id': doctor_id,
                 'service': service_name
             })
 
@@ -1093,13 +1112,17 @@ def recent_reports():
         return ok([])
 
 # -------------------------------------------------
-# GET /summary: Danh sách toàn bộ hồ sơ bệnh án (summary)
+# GET /summary: Danh sách hồ sơ bệnh án (có filter)
 # -------------------------------------------------
 @admin_reports_bp.route('/summary', methods=['GET'])
 @authenticator
 @check_role(['admin', 'superadmin'])
 def summary_reports():
     try:
+        doctor_name_filter = request.args.get('doctor_name')
+        user_name_filter = request.args.get('user_name')
+        status_filter = request.args.get('status')
+
         query = db.session.query(
             models.PatientReport,
             models.Pet,
@@ -1107,13 +1130,42 @@ def summary_reports():
             models.Slot,
             models.DoctorSlot,
             models.Doctor
-        ).join(models.Pet, models.PatientReport.pet_id == models.Pet.pet_id
-        ).join(models.User, models.Pet.user_id == models.User.user_id
-        ).join(models.Slot, models.PatientReport.slot_id == models.Slot.slot_id
-        ).join(models.DoctorSlot, models.Slot.doctor_slot_id == models.DoctorSlot.doctor_slot_id
-        ).join(models.Doctor, models.DoctorSlot.doctor_id == models.Doctor.doctor_id
-        ).order_by(models.PatientReport.report_id.asc()
-        ).all()
+        ).join(
+            models.Pet, models.PatientReport.pet_id == models.Pet.pet_id
+        ).join(
+            models.User, models.Pet.user_id == models.User.user_id
+        ).join(
+            models.Slot, models.PatientReport.slot_id == models.Slot.slot_id
+        ).join(
+            models.DoctorSlot, models.Slot.doctor_slot_id == models.DoctorSlot.doctor_slot_id
+        ).join(
+            models.Doctor, models.DoctorSlot.doctor_id == models.Doctor.doctor_id
+        )
+
+        # -------- FILTERS --------
+
+        # Filter theo status hồ sơ
+        if status_filter:
+            query = query.filter(models.PatientReport.status == status_filter)
+
+        # Filter theo tên bác sĩ
+        if doctor_name_filter:
+            query = query.filter(
+                models.Doctor.doctor_name.ilike(f"%{doctor_name_filter}%")
+            )
+
+        # Filter theo tên user (first / last / full name)
+        if user_name_filter:
+            query = query.filter(
+                or_(
+                    models.User.first_name.ilike(f"%{user_name_filter}%"),
+                    models.User.last_name.ilike(f"%{user_name_filter}%"),
+                    (models.User.first_name + ' ' + models.User.last_name)
+                    .ilike(f"%{user_name_filter}%")
+                )
+            )
+
+        query = query.order_by(models.PatientReport.report_id.asc()).all()
 
         data = []
         for report, pet, user, slot, doctor_slot, doctor in query:
@@ -1122,8 +1174,7 @@ def summary_reports():
                 'pet_name': pet.name,
                 'user_name': f"{user.first_name} {user.last_name}",
                 'doctor_name': doctor.doctor_name,
-                'status': report.status,
-                'check_in': slot.check_in.isoformat() if slot.check_in else None
+                'status': report.status
             })
 
         return jsonify({'data': data}), 200
@@ -1131,7 +1182,6 @@ def summary_reports():
     except Exception as e:
         print("Error fetching summary reports:", e)
         return jsonify({'data': []}), 500
-
 
 # -------------------------------------------------
 # GET /detail/<report_id>: Chi tiết hồ sơ bệnh án
@@ -1210,73 +1260,99 @@ def detail_report(report_id):
 
 
 # -------------------------------------------------
-# PATCH /update/<report_id>: Cập nhật status + thêm service/medicine
+# PATCH /<report_id>/items: Thêm service & medicine
 # -------------------------------------------------
-@admin_reports_bp.route('/update/<int:report_id>', methods=['PATCH'])
+@admin_reports_bp.route('/<int:report_id>/items', methods=['PATCH'])
 @authenticator
 @check_role(['admin', 'superadmin'])
-def update_patient_report(report_id):
-    """
-    Payload JSON:
-    {
-        "status": "Đang khám" or "Đã khám xong",
-        "services": [service_id1, service_id2, ...],
-        "medicines": [
-            {"medicine_id": 1, "quantity": 2},
-            {"medicine_id": 5, "quantity": 1}
-        ]
-    }
-    """
+def add_report_items(report_id):
     try:
+        data = request.get_json() or {}
+
         report = models.PatientReport.query.get(report_id)
         if not report:
             return jsonify({'error': f'Patient report {report_id} not found'}), 404
 
-        data = request.json or {}
-        
-        # --- Cập nhật status ---
-        if 'status' in data:
-            if data['status'] not in ['Đang chờ khám', 'Đang khám', 'Đã khám xong']:
-                return jsonify({'error': 'Invalid status value'}), 400
-            report.status = data['status']
-
-        # --- Thêm services ---
+        # -------- SERVICES --------
         service_ids = data.get('services', [])
-        for sid in service_ids:
-            # Kiểm tra xem service đã tồn tại cho report chưa
+        for service_id in service_ids:
             exists = models.db.session.query(models.report_service).filter_by(
-                report_id=report_id, service_id=sid
+                report_id=report_id,
+                service_id=service_id
             ).first()
-            if not exists:
-                new_rs = models.report_service(report_id=report_id, service_id=sid)
-                models.db.session.add(new_rs)
 
-        # --- Thêm medicines ---
+            if not exists:
+                rs = models.report_service(
+                    report_id=report_id,
+                    service_id=service_id
+                )
+                models.db.session.add(rs)
+
+        # -------- MEDICINES --------
         medicines = data.get('medicines', [])
         for med in medicines:
-            mid = med.get('medicine_id')
-            qty = med.get('quantity', 0)
-            if not mid or qty <= 0:
+            medicine_id = med.get('medicine_id')
+            quantity = med.get('quantity', 0)
+
+            if not medicine_id or quantity <= 0:
                 continue
-            # Kiểm tra xem medicine đã tồn tại cho report chưa
-            existing_med = models.db.session.query(models.report_medicine).filter_by(
-                report_id=report_id, medicine_id=mid
+
+            existing = models.db.session.query(models.report_medicine).filter_by(
+                report_id=report_id,
+                medicine_id=medicine_id
             ).first()
-            if existing_med:
-                # Nếu đã tồn tại, tăng quantity
-                existing_med.quantity += qty
+
+            if existing:
+                existing.quantity += quantity
             else:
-                new_rm = models.report_medicine(report_id=report_id, medicine_id=mid, quantity=qty)
-                models.db.session.add(new_rm)
+                rm = models.report_medicine(
+                    report_id=report_id,
+                    medicine_id=medicine_id,
+                    quantity=quantity
+                )
+                models.db.session.add(rm)
 
         models.db.session.commit()
-        return jsonify({'message': 'Patient report updated successfully'}), 200
+
+        return jsonify({'message': 'Services and medicines added successfully'}), 200
 
     except Exception as e:
-        print("Error updating patient report:", e)
+        print('Error adding report items:', e)
         models.db.session.rollback()
-        return jsonify({'error': 'Failed to update patient report'}), 500
+        return jsonify({'error': 'Failed to add services or medicines'}), 500
+# -------------------------------------------------
+# PATCH /<report_id>/status: Cập nhật status hồ sơ
+# -------------------------------------------------
+@admin_reports_bp.route('/<int:report_id>/status', methods=['PATCH'])
+@authenticator
+@check_role(['admin', 'superadmin'])
+def update_report_status(report_id):
+    try:
+        data = request.get_json() or {}
+        new_status = data.get('status')
 
+        if new_status not in ['Đang chờ khám', 'Đang khám', 'Đã khám xong']:
+            return jsonify({'error': 'Invalid status value'}), 400
+
+        report = models.PatientReport.query.get(report_id)
+        if not report:
+            return jsonify({'error': f'Patient report {report_id} not found'}), 404
+
+        report.status = new_status
+        models.db.session.commit()
+
+        return jsonify({
+            'message': 'Report status updated',
+            'data': {
+                'report_id': report.report_id,
+                'status': report.status
+            }
+        }), 200
+
+    except Exception as e:
+        print('Error updating report status:', e)
+        models.db.session.rollback()
+        return jsonify({'error': 'Failed to update report status'}), 500
 # -------------------------------------------------
 # POST /upload_image/<report_id>: Upload ảnh cho report
 # -------------------------------------------------
@@ -1846,7 +1922,7 @@ def list_services():
         view_all = request.args.get('view_all', 'false').lower() == 'true'
         query = models.Service.query.order_by(models.Service.service_id.asc())
         if not view_all:
-            query = query.limit(5)
+            query = query
         services = query.all()
 
         data = [{'service_id': s.service_id, 'name': s.name, 'price': float(s.price)} for s in services]
@@ -1867,7 +1943,7 @@ def list_medicines():
         view_all = request.args.get('view_all', 'false').lower() == 'true'
         query = models.Medicine.query.order_by(models.Medicine.medicine_id.asc())
         if not view_all:
-            query = query.limit(5)
+            query = query
         medicines = query.all()
 
         data = [{'medicine_id': m.medicine_id, 'name': m.name, 'price': float(m.price)} for m in medicines]
@@ -2229,6 +2305,22 @@ def list_users():
 
 
 # -------------------------------------------------
+# GET: Pets for a specific user (admin)
+# -------------------------------------------------
+@admin_users_bp.route('/<int:user_id>/pets', methods=['GET'])
+@authenticator
+@check_role(['admin', 'superadmin'])
+def admin_get_user_pets(user_id):
+    try:
+        pets = models.Pet.query.filter_by(user_id=user_id).order_by(models.Pet.pet_id.asc()).all()
+        data = [{'pet_id': p.pet_id, 'name': p.name, 'breed': p.breed, 'age': p.age} for p in pets]
+        return ok(data)
+    except Exception as e:
+        print('Error fetching user pets:', e)
+        return ok([])
+
+
+# -------------------------------------------------
 # PUT: Set user role
 # -------------------------------------------------
 @admin_users_bp.route('/<int:user_id>/role', methods=['PUT'])
@@ -2409,84 +2501,114 @@ def delete_user(user_id):
         print('Error deleting user:', e)
         models.db.session.rollback()
         return err('Failed to delete user', 500)
+
+
 # -------------------------------------------------
-# PUT: Update check_out & status của slot
+# PATCH: Update check_out only for a slot
 # -------------------------------------------------
-@admin_slots_bp.route('/<int:slot_id>', methods=['PUT'])
+@admin_slots_bp.route('/<int:slot_id>/checkout', methods=['PATCH'])
 @authenticator
 @check_role(['admin', 'superadmin'])
-def update_slot(slot_id):
+def update_slot_checkout(slot_id):
     """
-    Cập nhật slot
+    Cập nhật check_out của slot
 
-    Payload (ít nhất 1 field):
+    Payload:
     {
-        "status": "Đang khám",
         "check_out": "YYYY-MM-DDTHH:MM:SS"
     }
     """
     try:
         data = request.get_json() or {}
-
-        new_status = data.get('status')
         check_out_str = data.get('check_out')
+        if not check_out_str:
+            return jsonify({'error': 'check_out is required'}), 400
 
-        if not new_status and not check_out_str:
-            return jsonify({
-                'error': 'At least one of status or check_out is required'
-            }), 400
-
-        allowed_statuses = ['Đang chờ', 'Đang khám', 'Đã xong']
-
-        if new_status and new_status not in allowed_statuses:
-            return jsonify({
-                'error': f'Invalid status. Allowed: {allowed_statuses}'
-            }), 400
+        try:
+            check_out_dt = datetime.fromisoformat(check_out_str)
+        except ValueError:
+            return jsonify({'error': 'Invalid check_out format (ISO 8601)'}), 400
 
         slot = models.Slot.query.get(slot_id)
         if not slot:
-            return jsonify({
-                'error': f'Slot {slot_id} not found'
-            }), 404
+            return jsonify({'error': f'Slot {slot_id} not found'}), 404
 
-        # parse check_out nếu có
-        if check_out_str:
-            try:
-                check_out_dt = datetime.fromisoformat(check_out_str)
-            except ValueError:
-                return jsonify({
-                    'error': 'Invalid check_out format (ISO 8601)'
-                }), 400
+        if slot.check_in and check_out_dt <= slot.check_in:
+            return jsonify({'error': 'check_out must be greater than check_in'}), 400
 
-            if check_out_dt <= slot.check_in:
-                return jsonify({
-                    'error': 'check_out must be greater than check_in'
-                }), 400
-
-            slot.check_out = check_out_dt
-
-        # update status nếu có
-        if new_status:
-            slot.status = new_status
-
+        slot.check_out = check_out_dt
         models.db.session.commit()
 
         return jsonify({
-            'message': 'Slot updated successfully',
+            'message': 'Slot check_out updated successfully',
             'data': {
                 'slot_id': slot.slot_id,
-                'status': slot.status,
-                'check_in': slot.check_in.isoformat(),
+                'check_in': slot.check_in.isoformat() if slot.check_in else None,
                 'check_out': slot.check_out.isoformat() if slot.check_out else None
             }
         }), 200
 
     except Exception as e:
-        print('Error updating slot:', e)
+        print('Error updating slot checkout:', e)
         models.db.session.rollback()
+        return jsonify({'error': 'Failed to update check_out'}), 500
+
+
+# -------------------------------------------------
+# PUT: Update status only for a slot
+# -------------------------------------------------
+@admin_slots_bp.route('/<int:slot_id>/status', methods=['PUT'])
+@authenticator
+@check_role(['admin', 'superadmin'])
+def update_slot_status(slot_id):
+    """
+    Cập nhật status của slot
+
+    Payload:
+    {
+        "status": "Đang khám"
+    }
+    """
+    try:
+        data = request.get_json() or {}
+        new_status = data.get('status')
+        if not new_status:
+            return jsonify({'error': 'status is required'}), 400
+
+        allowed_statuses = ['Đang chờ', 'Đang khám', 'Đã xong']
+        if new_status not in allowed_statuses:
+            return jsonify({'error': f'Invalid status. Allowed: {allowed_statuses}'}), 400
+
+        slot = models.Slot.query.get(slot_id)
+        resolved_from = 'slot'
+        # If not found by primary key, allow a fallback where the passed id is actually
+        # an appointment_id (some frontends pass visit.id which may be appointment_id).
+        if not slot:
+            slot = models.Slot.query.filter_by(appointment_id=slot_id).order_by(models.Slot.check_in.desc()).first()
+            if slot:
+                resolved_from = 'appointment'
+
+        if not slot:
+            return jsonify({'error': f'Slot {slot_id} not found'}), 404
+
+        # Update the slot status
+        slot.status = new_status
+        models.db.session.commit()
+
         return jsonify({
-            'error': 'Failed to update slot'
-        }), 500
+            'message': 'Slot status updated successfully',
+            'data': {
+                'slot_id': slot.slot_id,
+                'status': slot.status,
+                'resolved_from': resolved_from
+            }
+        }), 200
+
+    except Exception as e:
+        print('Error updating slot status:', e)
+        models.db.session.rollback()
+        return jsonify({'error': 'Failed to update status'}), 500
+
 
 
 # -------------------------------------------------
@@ -2637,3 +2759,5 @@ def create_patient_report_by_name(slot_id):
         print('Error creating patient report:', e)
         models.db.session.rollback()
         return jsonify({'error': 'Failed to create patient report'}), 500
+
+

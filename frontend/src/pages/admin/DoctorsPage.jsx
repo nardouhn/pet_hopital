@@ -69,7 +69,7 @@ export default function DoctorsPage() {
 
   // Delete doctor function
   const handleDelete = async (doctorId) => {
-    if (window.confirm("Are you sure you want to delete this doctor?")) {
+    if (window.confirm("Bạn có chắc chắn muốn xoá bác sĩ này không?")) {
       try {
         await deleteDoctor(doctorId);
         // Refresh the doctors list
