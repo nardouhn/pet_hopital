@@ -353,11 +353,17 @@ def create_doctor():
     if not doctor_name or not email or not password:
         return jsonify({'message': 'Missing required fields'}), 400
 
+    # Check if email already exists
+    existing_doctor = models.Doctor.query.filter_by(email=email).first()
+    if existing_doctor:
+        return jsonify({'message': 'Email already exists'}), 400
+
     try:
+        hashed_password = generate_password_hash(password)
         doctor = models.Doctor(
             doctor_name=doctor_name,
             email=email,
-            password=password  # giả định đã hash ở tầng khác
+            password=hashed_password
         )
 
         models.db.session.add(doctor)
@@ -2481,3 +2487,153 @@ def update_slot(slot_id):
         return jsonify({
             'error': 'Failed to update slot'
         }), 500
+
+
+# -------------------------------------------------
+# POST: Tạo patient_report cho slot
+# -------------------------------------------------
+@admin_slots_bp.route('/<int:slot_id>/report', methods=['POST'])
+@authenticator
+@check_role(['admin', 'superadmin'])
+def create_patient_report(slot_id):
+    """
+    Tạo patient_report gắn với slot
+    Payload:
+    {
+        "pet_id": 1
+    }
+    """
+    try:
+        data = request.get_json() or {}
+        pet_id = data.get('pet_id')
+
+        if not pet_id:
+            return jsonify({'error': 'pet_id is required'}), 400
+
+        slot = models.Slot.query.get(slot_id)
+        if not slot:
+            return jsonify({'error': f'Slot {slot_id} not found'}), 404
+
+        # Check slot đã có report chưa
+        existing_report = models.PatientReport.query.filter_by(
+            slot_id=slot_id
+        ).first()
+        if existing_report:
+            return jsonify({
+                'error': 'Patient report already exists for this slot',
+                'report_id': existing_report.report_id
+            }), 400
+
+        # Validate pet thuộc user của appointment
+        appointment = models.Appointment.query.get(slot.appointment_id)
+        pet = models.Pet.query.filter_by(
+            pet_id=pet_id,
+            user_id=appointment.user_id
+        ).first()
+
+        if not pet:
+            return jsonify({
+                'error': 'Pet does not belong to appointment user'
+            }), 400
+
+        report = models.PatientReport(
+            slot_id=slot_id,
+            pet_id=pet_id,
+            status='Đang chờ khám'
+        )
+
+        models.db.session.add(report)
+        models.db.session.commit()
+
+        return jsonify({
+            'message': 'Patient report created',
+            'data': {
+                'report_id': report.report_id,
+                'slot_id': slot_id,
+                'pet_id': pet_id,
+                'status': report.status
+            }
+        }), 201
+
+    except Exception as e:
+        print('Error creating patient report:', e)
+        models.db.session.rollback()
+        return jsonify({'error': 'Failed to create patient report'}), 500
+
+# -------------------------------------------------
+# POST: Tạo patient_report cho slot (truyền pet_name)
+# -------------------------------------------------
+@admin_slots_bp.route('/<int:slot_id>/report/by-name', methods=['POST'])
+@authenticator
+@check_role(['admin', 'superadmin'])
+def create_patient_report_by_name(slot_id):
+    """
+    Tạo patient_report cho slot bằng pet_name
+    Payload:
+    {
+        "pet_name": "Milo"
+    }
+    """
+    try:
+        data = request.get_json() or {}
+        pet_name = data.get('pet_name')
+
+        if not pet_name:
+            return jsonify({'error': 'pet_name is required'}), 400
+
+        # 1. Lấy slot
+        slot = models.Slot.query.get(slot_id)
+        if not slot:
+            return jsonify({'error': f'Slot {slot_id} not found'}), 404
+
+        # 2. Check slot đã có report chưa
+        existing_report = models.PatientReport.query.filter_by(
+            slot_id=slot_id
+        ).first()
+        if existing_report:
+            return jsonify({
+                'error': 'Patient report already exists for this slot',
+                'report_id': existing_report.report_id
+            }), 400
+
+        # 3. Lấy appointment → user_id
+        appointment = models.Appointment.query.get(slot.appointment_id)
+        if not appointment:
+            return jsonify({'error': 'Appointment not found'}), 404
+
+        # 4. Tìm pet theo (user_id + pet_name)
+        pet = models.Pet.query.filter(
+            models.Pet.user_id == appointment.user_id,
+            models.Pet.name == pet_name
+        ).first()
+
+        if not pet:
+            return jsonify({
+                'error': f'Pet "{pet_name}" not found for this user'
+            }), 404
+
+        # 5. Tạo patient_report
+        report = models.PatientReport(
+            slot_id=slot_id,
+            pet_id=pet.pet_id,
+            status='Đang chờ khám'
+        )
+
+        models.db.session.add(report)
+        models.db.session.commit()
+
+        return jsonify({
+            'message': 'Patient report created successfully',
+            'data': {
+                'report_id': report.report_id,
+                'slot_id': slot_id,
+                'pet_id': pet.pet_id,
+                'pet_name': pet.name,
+                'status': report.status
+            }
+        }), 201
+
+    except Exception as e:
+        print('Error creating patient report:', e)
+        models.db.session.rollback()
+        return jsonify({'error': 'Failed to create patient report'}), 500

@@ -191,9 +191,9 @@ export default function InvoicesPage() {
                 </div>
 
                 <div>
-                  <p className="text-xs text-gray-500 uppercase mb-1">
+                  {/* <p className="text-xs text-gray-500 uppercase mb-1">
                     DUE DATE
-                  </p>
+                  </p> */}
                   <p className="text-sm font-medium text-gray-900">
                     {selectedInvoice.dueDate}
                   </p>
@@ -317,9 +317,9 @@ export default function InvoicesPage() {
                   <div className="space-y-2">
                     {selectedInvoice.medications.map((medication, index) => (
                       <div key={index} className="flex justify-between text-sm">
-                        <span className="text-gray-900">{medication.name}</span>
+                        <span className="text-gray-900">{medication.name} (x{medication.quantity})</span>
                         <span className="text-gray-900">
-                          {medication.price.toLocaleString()}
+                          {(medication.price * medication.quantity).toLocaleString()}
                         </span>
                       </div>
                     ))}

@@ -14,12 +14,12 @@ import { getAdminDoctors, getDoctorsSchedule, addDoctor, deleteDoctor } from "@/
 
 // Shared shift legend and helpers (module-level) so list & schedule use identical mapping/colors
 const SHIFTS = [
-  { id: 1, label: "Shift 1: Morning Shift", color: "bg-teal-200" },
-  { id: 2, label: "Shift 2: Afternoon Shift", color: "bg-gray-300" },
-  { id: 3, label: "Shift 3: Evening Shift", color: "bg-gray-400" },
-  { id: 4, label: "Shift 4: Night Shift", color: "bg-yellow-200" },
-  { id: 5, label: "Shift 5: Weekend Shift", color: "bg-green-200" },
-  { id: 6, label: "Shift 6: Emergency Shift", color: "bg-blue-200" },
+  { id: 1, label: "9-12", color: "bg-teal-200" },
+  { id: 2, label: "12-18", color: "bg-gray-300" },
+  { id: 3, label: "9-13", color: "bg-gray-400" },
+  { id: 4, label: "13-18", color: "bg-yellow-200" },
+  { id: 5, label: "9-17", color: "bg-green-200" },
+  { id: 6, label: "10-18", color: "bg-blue-200" },
 ];
 
 const getShiftColor = (shiftId) => {
@@ -53,13 +53,14 @@ export default function DoctorsPage() {
   const [viewMode, setViewMode] = useState("list"); // 'list' or 'schedule'
   const [currentMonth, setCurrentMonth] = useState(new Date(2025, 11, 1)); // December 2025
   const [showAddModal, setShowAddModal] = useState(false);
+  const [refresh, setRefresh] = useState(0);
 
   // Add doctor function
   const handleAddDoctor = async (doctorData) => {
     try {
-      const newDoctor = await addDoctor(doctorData);
-      setDoctors([...doctors, newDoctor]);
+      await addDoctor(doctorData);
       setShowAddModal(false);
+      setRefresh(r => r + 1);
     } catch (error) {
       console.error("Error adding doctor:", error);
       alert("Failed to add doctor. Please try again.");
@@ -117,7 +118,7 @@ export default function DoctorsPage() {
       }
     };
     fetchData();
-  }, []);
+  }, [refresh]);
 
   if (loading) {
     return <div className="p-6">Loading...</div>;
@@ -346,13 +347,14 @@ function AddDoctorModal({ onClose, onAddDoctor }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name || !email) {
+    if (!name || !email || !password) {
       alert("Vui lòng điền đầy đủ thông tin");
       return;
     }
     onAddDoctor({
-      name,
+      doctor_name: name,
       email,
+      password,
       schedule: [],
     });
   };
@@ -440,8 +442,20 @@ function ScheduleView({
   onNextMonth,
   monthName,
 }) {
+  const getNext7Days = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    return d;
+  });
+};
+
   // Days to show in calendar (2-17)
-  const days = Array.from({ length: 7 }, (_, i) => i + 2);
+  const days = getNext7Days();
+
 
   // Use shared `SHIFTS`, `getShiftColor`, `getShiftLabel` from module scope
 
@@ -488,11 +502,11 @@ function ScheduleView({
       {/* Shift Legend */}
       <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">
-          Shift Legend
+          Ca làm việc
         </h3>
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap gap-4 ">
           {SHIFTS.map((shift) => (
-            <div key={shift.id} className="flex items-center gap-2">
+            <div key={shift.id} className="flex items-center gap-2 ">
               <div className={`size-4 rounded ${shift.color}`}></div>
               <span className="text-sm text-gray-600">{shift.label}</span>
             </div>
@@ -509,13 +523,18 @@ function ScheduleView({
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 sticky left-0 bg-gray-50 min-w-[180px]">
                   Doctor
                 </th>
-                {days.map((day) => (
+                {days.map((date) => (
                   <th
-                    key={day}
-                    className="px-3 py-3 text-center text-sm font-semibold text-gray-700 min-w-[60px]"
+                    key={date.toISOString()}
+                    className="px-3 py-3 text-center text-sm font-semibold text-gray-700 min-w-[70px]"
                   >
-                    {day}
+                    <div>{date.getDate()}</div>
+                    <div className="text-xs text-gray-400">
+                      {date.toLocaleDateString("vi-VN", { weekday: "short" })}
+                    </div>
                   </th>
+
+
                 ))}
               </tr>
             </thead>
@@ -555,10 +574,10 @@ function ScheduleView({
                       </div>
                     </td>
                     {days.map((day) => {
-                      const rawShift = doctor.monthlySchedule?.[day];
+                      const rawShift = doctor.monthlySchedule?.[day.getDate()];
                       const legendId = mapShiftValueToLegend(rawShift);
                       return (
-                        <td key={day} className="px-3 py-3">
+                        <td key={day.getDate()} className="px-3 py-3">
                           <div className="flex justify-center">
                             {legendId ? (
                               <div

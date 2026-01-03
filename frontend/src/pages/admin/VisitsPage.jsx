@@ -262,7 +262,7 @@ export default function VisitsPage() {
           {/* Search Pet/Owner */}
           <div>
             <label className="block text-sm text-gray-600 mb-2">
-              Search Pet / Owner
+              Search Owner
             </label>
             <input
               type="text"
@@ -314,23 +314,23 @@ export default function VisitsPage() {
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 {/* SLOT ID */}
-                {/*
+                
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   SLOT ID
                 </th>
-                */}
+               
                 {/* CHECK-IN */}
-                {/*
+                
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   CHECK-IN
                 </th>
-                */}
+               
                 {/* CHECK-OUT */}
-                {/*
+                
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   CHECK-OUT
                 </th>
-                */}
+               
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   PET
                 </th>
@@ -371,31 +371,31 @@ export default function VisitsPage() {
                     className="hover:bg-gray-50 transition-colors"
                   >
                     {/* Slot ID */}
-                    {/*
+                    
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-medium text-gray-900">
                         {visit.slotId}
                       </span>
                     </td>
-                    */}
+                   
 
                     {/* Check-in */}
-                    {/*
+                    
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-teal-600 font-medium">
                         {visit.checkIn}
                       </span>
                     </td>
-                    */}
+                   
 
                     {/* Check-out */}
-                    {/*
+                    
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-gray-600">
                         {visit.checkOut}
                       </span>
                     </td>
-                    */}
+                   
 
                     {/* Pet */}
                     <td className="px-6 py-4 whitespace-nowrap">

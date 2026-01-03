@@ -875,6 +875,7 @@ WITH ph_cte AS (
            EXTRACT(DAY FROM (ph.check_out - ph.check_in))::int AS days,
            ROW_NUMBER() OVER () AS rn_ph
     FROM pet_hotel ph
+    WHERE ph.check_out IS NOT NULL
 ),
 hotel_cte AS (
     SELECT h.hotel_id,

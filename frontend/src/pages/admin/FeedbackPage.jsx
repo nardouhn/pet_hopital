@@ -226,9 +226,9 @@ function FeedbackCard({ feedback, onToggleStatus }) {
       </p>
 
       {/* Detail Button */}
-      <button className="w-full bg-teal-500 text-white py-2.5 rounded-lg hover:bg-teal-600 transition-all text-sm">
+      {/* <button className="w-full bg-teal-500 text-white py-2.5 rounded-lg hover:bg-teal-600 transition-all text-sm">
         Detail
-      </button>
+      </button> */}
     </div>
   );
 }
