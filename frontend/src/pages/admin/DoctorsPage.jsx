@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Calendar,
   Plus,
@@ -6,8 +7,10 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  X,
+  UserPlus
 } from "lucide-react";
-import { getAdminDoctors, getDoctorsSchedule } from "@/api/mockApi";
+import { getAdminDoctors, getDoctorsSchedule, addDoctor, deleteDoctor } from "@/api/mockApi";
 
 // Shared shift legend and helpers (module-level) so list & schedule use identical mapping/colors
 const SHIFTS = [
@@ -49,6 +52,36 @@ export default function DoctorsPage() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("list"); // 'list' or 'schedule'
   const [currentMonth, setCurrentMonth] = useState(new Date(2025, 11, 1)); // December 2025
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  // Add doctor function
+  const handleAddDoctor = async (doctorData) => {
+    try {
+      const newDoctor = await addDoctor(doctorData);
+      setDoctors([...doctors, newDoctor]);
+      setShowAddModal(false);
+    } catch (error) {
+      console.error("Error adding doctor:", error);
+      alert("Failed to add doctor. Please try again.");
+    }
+  };
+
+  // Delete doctor function
+  const handleDelete = async (doctorId) => {
+    if (window.confirm("Are you sure you want to delete this doctor?")) {
+      try {
+        await deleteDoctor(doctorId);
+        // Refresh the doctors list
+        const updatedDoctors = doctors.filter(
+          (doctor) => doctor.id !== doctorId
+        );
+        setDoctors(updatedDoctors);
+      } catch (error) {
+        console.error("Error deleting doctor:", error);
+        alert("Failed to delete doctor. Please try again.");
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -205,7 +238,10 @@ export default function DoctorsPage() {
             <Calendar className="size-4" />
             View Schedule
           </button>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
+          >
             <Plus className="size-4" />
             Add Doctor
           </button>
@@ -278,12 +314,12 @@ export default function DoctorsPage() {
                       </p>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        
-                        <button className="text-sm text-red-600 hover:text-red-700">
-                          Delete
-                        </button>
-                      </div>
+                      <button
+                        className="text-sm text-red-600 hover:text-red-700 font-medium"
+                        onClick={() => handleDelete(doctor.id)}
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -292,9 +328,109 @@ export default function DoctorsPage() {
           </div>
         </div>
       )}
+
+      {showAddModal && (
+        <AddDoctorModal
+          onClose={() => setShowAddModal(false)}
+          onAddDoctor={handleAddDoctor}
+        />
+      )}
     </div>
   );
 }
+
+function AddDoctorModal({ onClose, onAddDoctor }) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!name || !email) {
+      alert("Vui lòng điền đầy đủ thông tin");
+      return;
+    }
+    onAddDoctor({
+      name,
+      email,
+      schedule: [],
+    });
+  };
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] bg-black/40 flex items-center justify-center"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#d7fffb] rounded-[30px] shadow-[0px_30px_20px_15px_rgba(140,185,176,0.32)]
+        border border-[rgba(107,114,128,0.3)] p-8 w-[540px] relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Icon */}
+        <div className="absolute left-[103px] top-[37px] size-[30px]">
+          <UserPlus className="size-full text-teal-600" />
+        </div>
+
+        <h2 className="text-center text-[24px] font-semibold italic text-[#1d3b5e] mb-8">
+          Thêm bác sĩ
+        </h2>
+
+        <div className="bg-white border-2 border-[#ccfbf1] rounded-[17px] shadow-lg p-7">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="font-bold text-sm mb-2 block">Họ Tên</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-4 py-3 border rounded-lg"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-sm mb-2 block">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 border rounded-lg"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-sm mb-2 block">Mật khẩu</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 border rounded-lg"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-teal-500 text-white py-3 rounded-lg font-bold"
+            >
+              Thêm
+            </button>
+          </form>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 hover:bg-black/10 rounded-full"
+        >
+          <X />
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 
 function ScheduleView({
   doctors,
