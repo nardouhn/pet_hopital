@@ -827,14 +827,26 @@ export async function updateSlotCheckout(slotId, payload) {
   }
 }
 
+// export async function updateSlotStatus(slotId, status) {
+//   try {
+//     const res = await request(`/admin/slots/${slotId}/status`, { method: 'PUT', body: { status } });
+//     return res?.data || res;
+//   } catch (err) {
+//     throw err;
+//   }
+// }
+
+
 export async function updateSlotStatus(slotId, status) {
-  try {
-    const res = await request(`/admin/slots/${slotId}/status`, { method: 'PUT', body: { status } });
-    return res?.data || res;
-  } catch (err) {
-    throw err;
+  if (!slotId) {
+    throw new Error('slotId is required to update slot status');
   }
+
+  const res = await request(`/admin/slots/${slotId}/status`, { method: 'PUT', body: { status } });
+
+  return res?.data || res;
 }
+
 
 export async function getUserPets(userId) {
   try {

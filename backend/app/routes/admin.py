@@ -2557,12 +2557,68 @@ def update_slot_checkout(slot_id):
 # -------------------------------------------------
 # PUT: Update status only for a slot
 # -------------------------------------------------
+# @admin_slots_bp.route('/<int:slot_id>/status', methods=['PUT'])
+# @authenticator
+# @check_role(['admin', 'superadmin'])
+# def update_slot_status(slot_id):
+#     """
+#     Cập nhật status của slot
+
+#     Payload:
+#     {
+#         "status": "Đang khám"
+#     }
+#     """
+#     try:
+#         data = request.get_json() or {}
+#         new_status = data.get('status')
+#         if not new_status:
+#             return jsonify({'error': 'status is required'}), 400
+
+#         allowed_statuses = ['Đang chờ', 'Đang khám', 'Đã xong']
+#         if new_status not in allowed_statuses:
+#             return jsonify({'error': f'Invalid status. Allowed: {allowed_statuses}'}), 400
+
+#         slot = models.Slot.query.get(slot_id)
+#         resolved_from = 'slot'
+#         # If not found by primary key, allow a fallback where the passed id is actually
+#         # an appointment_id (some frontends pass visit.id which may be appointment_id).
+#         if not slot:
+#             slot = models.Slot.query.filter_by(appointment_id=slot_id).order_by(models.Slot.check_in.desc()).first()
+#             if slot:
+#                 resolved_from = 'appointment'
+
+#         if not slot:
+#             return jsonify({'error': f'Slot {slot_id} not found'}), 404
+
+#         # Update the slot status
+#         slot.status = new_status
+#         models.db.session.commit()
+
+#         return jsonify({
+#             'message': 'Slot status updated successfully',
+#             'data': {
+#                 'slot_id': slot.slot_id,
+#                 'status': slot.status,
+#                 'resolved_from': resolved_from
+#             }
+#         }), 200
+
+#     except Exception as e:
+#         print('Error updating slot status:', e)
+#         models.db.session.rollback()
+#         return jsonify({'error': 'Failed to update status'}), 500
+
+
+# -------------------------------------------------
+# PUT: Update status only for a slot
+# -------------------------------------------------
 @admin_slots_bp.route('/<int:slot_id>/status', methods=['PUT'])
 @authenticator
 @check_role(['admin', 'superadmin'])
 def update_slot_status(slot_id):
     """
-    Cập nhật status của slot
+    Cập nhật status của slot (CHỈ THEO slot_id)
 
     Payload:
     {
@@ -2572,26 +2628,23 @@ def update_slot_status(slot_id):
     try:
         data = request.get_json() or {}
         new_status = data.get('status')
+
         if not new_status:
             return jsonify({'error': 'status is required'}), 400
 
         allowed_statuses = ['Đang chờ', 'Đang khám', 'Đã xong']
         if new_status not in allowed_statuses:
-            return jsonify({'error': f'Invalid status. Allowed: {allowed_statuses}'}), 400
+            return jsonify({
+                'error': f'Invalid status. Allowed: {allowed_statuses}'
+            }), 400
 
+        # 🔥 CHỈ tìm theo slot_id
         slot = models.Slot.query.get(slot_id)
-        resolved_from = 'slot'
-        # If not found by primary key, allow a fallback where the passed id is actually
-        # an appointment_id (some frontends pass visit.id which may be appointment_id).
         if not slot:
-            slot = models.Slot.query.filter_by(appointment_id=slot_id).order_by(models.Slot.check_in.desc()).first()
-            if slot:
-                resolved_from = 'appointment'
+            return jsonify({
+                'error': f'Slot {slot_id} not found'
+            }), 404
 
-        if not slot:
-            return jsonify({'error': f'Slot {slot_id} not found'}), 404
-
-        # Update the slot status
         slot.status = new_status
         models.db.session.commit()
 
@@ -2599,8 +2652,7 @@ def update_slot_status(slot_id):
             'message': 'Slot status updated successfully',
             'data': {
                 'slot_id': slot.slot_id,
-                'status': slot.status,
-                'resolved_from': resolved_from
+                'status': slot.status
             }
         }), 200
 
@@ -2608,6 +2660,7 @@ def update_slot_status(slot_id):
         print('Error updating slot status:', e)
         models.db.session.rollback()
         return jsonify({'error': 'Failed to update status'}), 500
+
 
 
 

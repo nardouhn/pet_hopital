@@ -1,59 +1,104 @@
-import { useState, useEffect } from "react";
-import { Home, Calendar } from "lucide-react";
-import { api } from "@/api/mockApi";
+import { useState, useEffect } from 'react';
+import { Home, Calendar, DollarSign, Users, Plus, CalendarCheck, ArrowLeft } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { api, getHotelRooms as fetchHotelRooms, getHotelBookings as fetchHotelBookings } from '@/api/mockApi';
+import svgPaths from '@/assets/svg-m4bne1t8yn';
 
 export default function HotelPage() {
   const [bookings, setBookings] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showInvoiceHistory, setShowInvoiceHistory] = useState(false);
+  const [checkoutTimes, setCheckoutTimes] = useState({});
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    ownerEmail: '',
+    petName: '',
+    visitDate: '',
+    roomType: '',
+    description: ''
+  });
+
+  // Room prices and invoices are fetched from backend APIs now (no mock data).
 
   useEffect(() => {
-    Promise.all([api.getHotelBookings(), api.getHotelRooms()]).then(
-      ([bookingsData, roomsData]) => {
-        setBookings(bookingsData);
-        setRooms(roomsData);
-        setLoading(false);
-      }
-    );
+    let mounted = true;
+    Promise.all([
+      fetchHotelBookings(),
+      fetchHotelRooms()
+    ]).then(([bookingsData = [], roomsData = []]) => {
+      if (!mounted) return;
+      setBookings(bookingsData);
+      setRooms(roomsData);
+    }).catch((err) => {
+      console.error('Failed to load hotel data', err);
+    }).finally(() => {
+      if (mounted) setLoading(false);
+    });
+
+    return () => { mounted = false; };
   }, []);
 
-  // Calculate statistics
-  const totalRooms = rooms.length;
-  const occupiedRooms = rooms.filter((r) => r.status === "Occupied").length;
-  const reservedRooms = rooms.filter((r) => r.status === "Reserved").length;
-  const bookedRooms = occupiedRooms + reservedRooms;
-  const vacancyRate =
-    totalRooms > 0
-      ? Math.round(((totalRooms - bookedRooms) / totalRooms) * 100)
-      : 0;
+  // Calculate statistics from backend data
+  const currentBookings = bookings.filter(b => !b.checkOut);
+  const totalRooms = rooms.length * 10; // Assuming each room can accommodate 10 pets
+  const occupiedRooms = new Set(currentBookings.map(b => b.pethouse)).size;
+  const currentPetsInClinic = currentBookings.length;
 
-  // Split bookings
-  const currentBookings = bookings.filter((b) => b.bookingType === "current");
-  const upcomingBookings = bookings.filter((b) => b.bookingType === "upcoming");
+  // Calculate revenue (sum of invoice totals)
+  const totalRevenue = bookings.reduce((sum, b) => sum + (Number(b.total) || 0), 0);
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    return (Number(amount) || 0).toLocaleString('vi-VN') + 'đ';
+  };
+
+  // Format date/time for display
+  const formatDate = (dateStr) => {
+    try {
+      if (!dateStr) return '-';
+      return new Date(dateStr).toLocaleString('vi-VN');
+    } catch (e) {
+      return dateStr || '-';
+    }
+  };
+
+  // Handle checkout (UI only for now)
+  const handleCheckout = (bookingId) => {
+    const now = new Date();
+    const formattedTime = now.toLocaleString('vi-VN');
+    setCheckoutTimes({
+      ...checkoutTimes,
+      [bookingId]: formattedTime
+    });
+    toast.success('Check-out thành công!');
+  };
 
   const getRoomStatusColor = (status) => {
     switch (status) {
-      case "Occupied":
-        return "bg-teal-100 border-teal-300";
-      case "Reserved":
-        return "bg-blue-100 border-blue-300";
-      case "Available":
-        return "bg-white border-gray-200";
+      case 'Occupied':
+        return 'bg-teal-100 border-teal-300';
+      case 'Reserved':
+        return 'bg-blue-100 border-blue-300';
+      case 'Available':
+        return 'bg-white border-gray-200';
       default:
-        return "bg-gray-100 border-gray-200";
+        return 'bg-gray-100 border-gray-200';
     }
   };
 
   const getRoomStatusTextColor = (status) => {
     switch (status) {
-      case "Occupied":
-        return "text-teal-700";
-      case "Reserved":
-        return "text-blue-700";
-      case "Available":
-        return "text-gray-500";
+      case 'Occupied':
+        return 'text-teal-700';
+      case 'Reserved':
+        return 'text-blue-700';
+      case 'Available':
+        return 'text-gray-500';
       default:
-        return "text-gray-500";
+        return 'text-gray-500';
     }
   };
 
@@ -61,201 +106,350 @@ export default function HotelPage() {
     return <div className="p-6">Loading...</div>;
   }
 
-  return (
-    <div className="p-6 space-y-6 bg-[#f8fafb] min-h-screen">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Khách sạn thú cưng</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Quản lý dịch vụ lưu trú cho vật nuôi
-        </p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Total Rooms */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-teal-50 rounded-xl">
-              <Home className="size-6 text-teal-600" />
-            </div>
-          </div>
-          <p className="text-sm text-gray-600 mb-2">Tổng số phòng</p>
-          <p className="text-3xl font-bold text-gray-900">{totalRooms}</p>
-        </div>
-
-        {/* Booked Rooms */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-blue-50 rounded-xl">
-              <Calendar className="size-6 text-blue-600" />
-            </div>
-          </div>
-          <p className="text-sm text-gray-600 mb-2">Phòng đã đặt</p>
-          <p className="text-3xl font-bold text-gray-900">{bookedRooms}</p>
-        </div>
-
-        {/* Monthly Usage Rate */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-purple-50 rounded-xl">
-              <Calendar className="size-6 text-purple-600" />
-            </div>
-          </div>
-          <p className="text-sm text-gray-600 mb-2">
-            Tỷ lệ sử dụng trong tháng
-          </p>
-          <p className="text-3xl font-bold text-gray-900">{occupiedRooms}</p>
-        </div>
-
-        {/* Vacancy Rate */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-green-50 rounded-xl">
-              <Home className="size-6 text-green-600" />
-            </div>
-          </div>
-          <p className="text-sm text-gray-600 mb-2">Tỷ lệ phòng trống</p>
-          <p className="text-3xl font-bold text-gray-900">{vacancyRate}%</p>
-        </div>
-      </div>
-
-      {/* Two Column Layout - Current Rentals and Contracts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Current Rentals - Left Column */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">
-            Đang thuê
-          </h2>
-          <div className="space-y-4">
-            {currentBookings.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">
-                Không có đặt phòng đang diễn ra
-              </p>
-            ) : (
-              currentBookings.map((booking) => (
-                <div
-                  key={booking.id}
-                  className="bg-gray-50 rounded-xl p-4 border border-gray-100"
-                >
-                  {/* Pet Name and Owner */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-medium text-gray-900">
-                        {booking.petName} - {booking.ownerName}
-                      </h3>
-                    </div>
-                    <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-lg text-xs font-medium">
-                      Ongoing
-                    </span>
-                  </div>
-
-                  {/* Date Range */}
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="size-4" />
-                    <span>
-                      {booking.checkIn} - {booking.checkOut}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
+  // If showing invoice history, render invoice view
+  if (showInvoiceHistory) {
+    return (
+      <div className="p-6 space-y-6 bg-[#f8fafb] min-h-screen">
+        {/* Header with Back Button */}
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            onClick={() => setShowInvoiceHistory(false)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="size-5 text-gray-700" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Hóa đơn Pet Hotel</h1>
+            <p className="text-sm text-gray-500 mt-1">Quản lý các hóa đơn dịch vụ khách sạn thú cưng</p>
           </div>
         </div>
 
-        {/* Upcoming Contracts - Right Column */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Hợp đồng</h2>
-          <div className="space-y-4">
-            {upcomingBookings.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">
-                Không có hợp đồng sắp tới
-              </p>
-            ) : (
-              upcomingBookings.map((booking) => (
-                <div
-                  key={booking.id}
-                  className="bg-gray-50 rounded-xl p-4 border border-gray-100"
-                >
-                  {/* Pet Name and Owner */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-medium text-gray-900">
-                        {booking.petName} - {booking.ownerName}
-                      </h3>
-                    </div>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium">
-                      Upcoming
-                    </span>
-                  </div>
-
-                  {/* Date Range */}
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="size-4" />
-                    <span>
-                      {booking.checkIn} - {booking.checkOut}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Room Status Grid */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Tình trạng phòng
-          </h2>
-
-          {/* Legend */}
-          <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-white border-2 border-gray-200"></div>
-              <span className="text-gray-600">Available</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-teal-100 border-2 border-teal-300"></div>
-              <span className="text-gray-600">Occupied</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-blue-100 border-2 border-blue-300"></div>
-              <span className="text-gray-600">Reserved</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Room Grid */}
-        <div className="grid grid-cols-5 gap-4">
-          {rooms.map((room) => (
+        {/* Invoice List (from backend bookings/invoices) */}
+        <div className="space-y-3">
+          {bookings.map((inv, idx) => (
             <div
-              key={room.number}
-              className={`p-4 rounded-xl border-2 transition-all hover:shadow-md ${getRoomStatusColor(
-                room.status
-              )}`}
+              key={`${inv.petName || 'inv'}-${idx}`}
+              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
             >
-              <div className="text-center">
-                <p
-                  className={`text-sm font-semibold ${getRoomStatusTextColor(
-                    room.status
-                  )}`}
-                >
-                  {room.number}
-                </p>
-                <p
-                  className={`text-xs mt-1 ${getRoomStatusTextColor(
-                    room.status
-                  )}`}
-                >
-                  {room.status}
-                </p>
+              <div className="flex items-start gap-4">
+                {/* Pet Avatar */}
+                <div className="size-10 rounded-full bg-gradient-to-br from-teal-400 to-blue-400 flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-semibold">
+                    {(inv.petName || '-').charAt(0)}
+                  </span>
+                </div>
+
+                {/* Invoice Details Grid */}
+                <div className="flex-1 grid grid-cols-6 gap-4 items-center">
+                  {/* Name & Owner */}
+                  <div>
+                    <p className="font-semibold text-gray-900">{inv.petName}</p>
+                    <p className="text-xs text-gray-500">{inv.user_name || inv.ownerName || '-'}</p>
+                  </div>
+
+                  {/* Check-in */}
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">📅 Check-in</p>
+                    <p className="text-xs text-gray-700">{formatDate(inv.check_in || inv.checkIn)}</p>
+                  </div>
+
+                  {/* Check-out */}
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">📅 Check-out</p>
+                    <p className="text-xs text-gray-700">{formatDate(inv.check_out || inv.checkOut)}</p>
+                  </div>
+
+                  {/* Days */}
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Số ngày</p>
+                    <p className="text-xs text-gray-700">{inv.days}</p>
+                  </div>
+
+                  {/* Room Type */}
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Loại phòng</p>
+                    <p className="text-xs text-gray-700">{inv.pethouse}</p>
+                  </div>
+
+                  {/* Total */}
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500 mb-1">Tổng tiền</p>
+                    <p className="font-bold text-gray-900">{formatCurrency(inv.total)}</p>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6 bg-[#f8fafb] min-h-screen">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Khách sạn thú cưng</h1>
+          <p className="text-sm text-gray-500 mt-1">Chào mừng đến với khách sạn thú cưng</p>
+        </div>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
+          >
+            <Plus className="size-4" />
+            Thêm đơn
+          </button>
+          
+          <button 
+            onClick={() => setShowInvoiceHistory(true)}
+            className="flex items-center gap-2 px-4 py-2.5 border border-teal-500 text-teal-600 rounded-lg hover:bg-teal-50 transition-colors"
+          >
+            <Calendar className="size-4" />
+            Lịch sử hóa đơn
+          </button>
+          
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Pets in Clinic / Total Rooms */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-3 bg-purple-50 rounded-xl">
+              <Users className="size-6 text-purple-600" />
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mb-2">Thú cưng / Số phòng</p>
+          <p className="text-3xl font-bold text-gray-900">{currentPetsInClinic}/{totalRooms}</p>
+        </div>
+
+        {/* Total Revenue */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-3 bg-green-50 rounded-xl">
+              <DollarSign className="size-6 text-green-600" />
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mb-2">Tổng doanh thu</p>
+          <p className="text-3xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
+        </div>
+
+        
+      </div>
+
+      {/* Two Column Layout - Pets in Clinic and Room Prices */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Pets in Clinic - Left Column */}
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-[#e5e7eb]">
+          <h2 className="text-lg font-bold text-[#1f2937] mb-6">Đang thuê</h2>
+          <div className="space-y-4">
+            {currentBookings.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-8">Không có thú cưng nào</p>
+            ) : (
+              currentBookings.slice(0, 5).map((booking, idx) => (
+                <div
+                  key={`${booking.petName || 'b'}-${idx}`}
+                  className="border border-[#e5e7eb] rounded-lg p-4 relative hover:shadow-md transition-shadow"
+                >
+                  {/* Pet Name and Owner */}
+                  <h3 className="font-bold text-[#1f2937] text-sm mb-2">
+                    {booking.petName} - {booking.user_name || booking.ownerName || '-'}
+                  </h3>
+                  
+                  {/* Room */}
+                  <p className="text-xs text-[#4b5563] mb-3">{booking.pethouse || '-'}</p>
+                  
+                  {/* Check-in/Check-out Badge */}
+                  <button
+                    onClick={() => handleCheckout(`${booking.petName || ''}-${idx}`)}
+                    className={`absolute right-3 top-3 rounded-full px-3 py-1 transition-colors ${
+                      checkoutTimes[`${booking.petName || ''}-${idx}`]
+                        ? 'bg-[#fee2e2] hover:bg-[#fecaca]'
+                        : 'bg-[#dcfce7] hover:bg-[#bbf7d0]'
+                    }`}
+                  >
+                    {checkoutTimes[`${booking.petName || ''}-${idx}`] ? (
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs text-[#991b1b] font-semibold">Check-out</span>
+                        <span className="text-[10px] text-[#991b1b]">{checkoutTimes[`${booking.petName || ''}-${idx}`]}</span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-[#15803d]">Checked In</span>
+                    )}
+                  </button>
+                  
+                  {/* Calendar Icon and Date Range */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <svg className="size-3" fill="none" viewBox="0 0 11.4423 11.4423">
+                      <g>
+                        <path d="M3.81485 0.954127V2.86118" stroke="#4B5563" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.953526" />
+                        <path d="M7.62896 0.954127V2.86118" stroke="#4B5563" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.953526" />
+                        <path d={svgPaths.p3d996180} stroke="#4B5563" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.953526" />
+                        <path d="M1.43104 4.76823H10.0128" stroke="#4B5563" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.953526" />
+                      </g>
+                    </svg>
+                    <span className="text-xs text-[#4b5563]">{formatDate(booking.check_in || booking.checkIn)} - {formatDate(booking.check_out || booking.checkOut)}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Room Prices - Right Column */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900 mb-6">Bảng giá phòng/ngày</h2>
+          <div className="space-y-2">
+            {rooms.map((room, index) => (
+              <div
+                key={room.hotel_id || `${room.name}-${index}`}
+                className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="size-8 rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center flex-shrink-0">
+                    <Home className="size-4 text-purple-600" />
+                  </div>
+                  <span className="text-sm text-gray-700">{room.name}</span>
+                </div>
+                <span className="font-semibold text-teal-600">{formatCurrency(room.price)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Add Booking Modal */}
+      {showAddModal && createPortal(
+        <div className="fixed inset-0 bg-[rgba(0,0,0,0.4)] flex items-center justify-center p-4 z-50">
+          <div className="bg-[rgba(210,255,250,0.95)] rounded-3xl shadow-2xl w-full max-w-xl relative">
+            {/* Header */}
+            <div className="text-center py-6 border-b border-teal-200">
+              <h2 className="text-2xl font-bold text-[#143937]">Thêm đơn khách sạn thú cưng</h2>
+            </div>
+            
+            {/* Form */}
+            <div className="bg-white rounded-2xl m-6 p-6 border-4 border-[#ccfbf1]">
+              <div className="space-y-5">
+                {/* Email chủ */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-2">
+                    <span>👤</span>
+                    <span>Email chủ</span>
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="Nguyễn Quốc"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent text-sm"
+                    value={formData.ownerEmail}
+                    onChange={(e) => setFormData({ ...formData, ownerEmail: e.target.value })}
+                  />
+                </div>
+
+                {/* Tên thú cưng */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-2">
+                    <span>🐕</span>
+                    <span>Tên thú cưng của bạn</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Chó, mèo,....."
+                    className="w-full px-4 py-3 bg-[#ccfbf1] border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent text-sm text-black"
+                    value={formData.petName}
+                    onChange={(e) => setFormData({ ...formData, petName: e.target.value })}
+                  />
+                </div>
+
+                {/* Two column layout for date and room type */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Ngày thăm khám */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-2">
+                      <span>📅</span>
+                      <span>Ngày thăm khám*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent text-sm"
+                      value={formData.visitDate}
+                      onChange={(e) => setFormData({ ...formData, visitDate: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Loại phòng */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-2">
+                      <Home className="size-4" />
+                      <span>Loại phòng</span>
+                    </label>
+                    <select
+                      className="w-full px-4 py-3 bg-[#ccfbf1] border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent text-sm text-black"
+                      value={formData.roomType}
+                      onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
+                    >
+                      <option value="">Loại phòng</option>
+                      {rooms.map((room) => (
+                        <option key={room.hotel_id || room.name} value={room.name}>{room.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Mô tả */}
+                <div>
+                  <label className="text-sm font-bold text-gray-900 mb-2 block text-center">
+                    Mô tả tình trạng của thú cưng
+                  </label>
+                  <textarea
+                    placeholder="Mô tả ...."
+                    rows={3}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent text-sm resize-none"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="button"
+                  className="w-full bg-gradient-to-r from-teal-500 to-blue-500 text-white py-3 rounded-xl font-bold hover:from-teal-600 hover:to-blue-600 transition-all flex items-center justify-center gap-2"
+                  onClick={() => {
+                    if (!formData.ownerEmail || !formData.petName || !formData.visitDate || !formData.roomType) {
+                      toast.error('Vui lòng điền đầy đủ thông tin bắt buộc!');
+                      return;
+                    }
+                    
+                    toast.success('Đơn đặt phòng đã được thêm thành công!');
+                    setFormData({
+                      ownerEmail: '',
+                      petName: '',
+                      visitDate: '',
+                      roomType: '',
+                      description: ''
+                    });
+                    setShowAddModal(false);
+                  }}
+                >
+                  <CalendarCheck className="size-5" />
+                  Đặt lịch hẹn ngay
+                </button>
+              </div>
+            </div>
+
+            {/* Close button */}
+            <button
+              onClick={() => setShowAddModal(false)}
+              className="absolute top-4 right-4 text-gray-600 hover:text-gray-900 text-2xl font-bold"
+            >
+              ×
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

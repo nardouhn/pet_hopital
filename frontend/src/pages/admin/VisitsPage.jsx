@@ -117,12 +117,32 @@ export default function VisitsPage() {
 
     return matchesDate && matchesStatus && matchesService && matchesDoctor && matchesSearch;
   });
+  // const handleStatusChange = async (visitId, newStatus) => {
+  //   try {
+  //     // optimistic UI update
+  //     setVisits((prev) => prev.map((v) => v.id === visitId ? { ...v, status: newStatus } : v));
+  //     const slot = visits.find(v => v.id === visitId);
+  //     const slotId = slot?.slotId || visitId;
+  //     await updateSlotStatus(slotId, newStatus);
+  //   } catch (err) {
+  //     console.error('Failed to update status:', err);
+  //     setError(err?.message || 'Failed to update status');
+  //     // revert optimistic update: refetch visits
+  //     try {
+  //       const rows = await getAdminAppointments();
+  //       setVisits(rows || []);
+  //     } catch (e) { console.error(e); }
+  //   }
+  // };
+
   const handleStatusChange = async (visitId, newStatus) => {
     try {
       // optimistic UI update
-      setVisits((prev) => prev.map((v) => v.id === visitId ? { ...v, status: newStatus } : v));
-      const slot = visits.find(v => v.id === visitId);
+      setVisits((prev) => prev.map((v) => (v.id === visitId ? { ...v, status: newStatus } : v)));
+
+      const slot = visits.find((v) => v.id === visitId);
       const slotId = slot?.slotId || visitId;
+
       await updateSlotStatus(slotId, newStatus);
     } catch (err) {
       console.error('Failed to update status:', err);
@@ -131,10 +151,11 @@ export default function VisitsPage() {
       try {
         const rows = await getAdminAppointments();
         setVisits(rows || []);
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
-
 
   const handleApplyFilter = () => {
     // Filters are applied in real-time, this is just for UI feedback
