@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import { api, getHotelRooms as fetchHotelRooms, getHotelBookings as fetchHotelBookings } from '@/api/mockApi';
 import svgPaths from '@/assets/svg-m4bne1t8yn';
 
+
+
 export default function HotelPage() {
   const [bookings, setBookings] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -66,6 +68,72 @@ export default function HotelPage() {
   };
 
   // Handle checkout (UI only for now)
+
+  // Handle adding new booking
+  const handleAddBooking = () => {
+    if (!formData.ownerEmail || !formData.petName || !formData.visitDate || !formData.roomType) {
+      toast.error('Vui lòng điền đầy đủ thông tin bắt buộc!');
+      return;
+    }
+
+    // Format the visit date
+    const visitDate = new Date(formData.visitDate);
+    const checkInFormatted = visitDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    // Calculate checkout date (7 days later for example)
+    const checkOutDate = new Date(visitDate);
+    checkOutDate.setDate(checkOutDate.getDate() + 7);
+    const checkOutFormatted = checkOutDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    // Find the price for the selected room type
+    const selectedRoom = roomPrices.find(room => room.name === formData.roomType);
+    const price = selectedRoom ? selectedRoom.price : 250000;
+
+    // Generate a random room number
+    const roomNumber = `B-${Math.floor(Math.random() * 300) + 200}`;
+
+    // Create new booking object
+    const newBooking = {
+      id: Date.now(), // Unique ID
+      petName: formData.petName,
+      ownerName: formData.ownerEmail,
+      bookingType: 'current',
+      checkIn: checkInFormatted,
+      checkOut: checkOutFormatted,
+      roomNumber: roomNumber,
+      price: price,
+      roomType: formData.roomType,
+      description: formData.description
+    };
+
+    // Add to bookings array
+    setBookings([newBooking, ...bookings]);
+
+    toast.success('Đơn đặt phòng đã được thêm thành công!');
+    
+    // Reset form
+    setFormData({
+      ownerEmail: '',
+      petName: '',
+      visitDate: '',
+      roomType: '',
+      description: ''
+    });
+    
+    setShowAddModal(false);
+  };
+  
+
+
+
   const handleCheckout = (bookingId) => {
     const now = new Date();
     const formattedTime = now.toLocaleString('vi-VN');
@@ -185,6 +253,10 @@ export default function HotelPage() {
     );
   }
 
+
+
+  
+  
   return (
     <div className="p-6 space-y-6 bg-[#f8fafb] min-h-screen">
       {/* Header */}
@@ -264,7 +336,7 @@ export default function HotelPage() {
                   
                   {/* Check-in/Check-out Badge */}
                   <button
-                    onClick={() => handleCheckout(`${booking.petName || ''}-${idx}`)}
+                    // onClick={() => handleCheckout(`${booking.petName || ''}-${idx}`)}
                     className={`absolute right-3 top-3 rounded-full px-3 py-1 transition-colors ${
                       checkoutTimes[`${booking.petName || ''}-${idx}`]
                         ? 'bg-[#fee2e2] hover:bg-[#fecaca]'
@@ -413,25 +485,11 @@ export default function HotelPage() {
                 </div>
 
                 {/* Submit Button */}
+               {/* Submit Button */}
                 <button
                   type="button"
                   className="w-full bg-gradient-to-r from-teal-500 to-blue-500 text-white py-3 rounded-xl font-bold hover:from-teal-600 hover:to-blue-600 transition-all flex items-center justify-center gap-2"
-                  onClick={() => {
-                    if (!formData.ownerEmail || !formData.petName || !formData.visitDate || !formData.roomType) {
-                      toast.error('Vui lòng điền đầy đủ thông tin bắt buộc!');
-                      return;
-                    }
-                    
-                    toast.success('Đơn đặt phòng đã được thêm thành công!');
-                    setFormData({
-                      ownerEmail: '',
-                      petName: '',
-                      visitDate: '',
-                      roomType: '',
-                      description: ''
-                    });
-                    setShowAddModal(false);
-                  }}
+                  onClick={handleAddBooking}
                 >
                   <CalendarCheck className="size-5" />
                   Đặt lịch hẹn ngay
