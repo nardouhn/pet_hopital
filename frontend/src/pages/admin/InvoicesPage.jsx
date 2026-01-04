@@ -34,7 +34,6 @@ export default function InvoicesPage() {
         id: inv.invoice_id,
         invoiceId: inv.invoice_id,
         amount: inv.total,
-        status: 'Paid',
         patientName: inv.pet_name,
         ownerName: inv.user_name,
         dueDate: inv.check_out ? new Date(inv.check_out).toLocaleDateString() : '',
@@ -70,7 +69,7 @@ export default function InvoicesPage() {
         patientName: data.pet_name,
         ownerName: data.user_name,
         amount: data.total,
-        status: 'Paid',
+
         dueDate: data.check_out ? new Date(data.check_out).toLocaleDateString() : '',
         subtotal: data.total,
         tax: 0,
@@ -144,13 +143,7 @@ export default function InvoicesPage() {
                     {selectedInvoice.invoiceId}
                   </h2>
                 </div>
-                <span
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium ${getStatusColor(
-                    selectedInvoice.status
-                  )}`}
-                >
-                  {selectedInvoice.status}
-                </span>
+                
               </div>
 
               {/* Patient Info */}
@@ -228,15 +221,7 @@ export default function InvoicesPage() {
                 </span>
               </div> */}
 
-              {/* Confirm Payment Button - Only for Pending */}
-              {selectedInvoice.status === "Pending" && (
-                <button
-                  onClick={handleConfirmPayment}
-                  className="w-full py-3 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors font-medium"
-                >
-                  Confirm Payment
-                </button>
-              )}
+              
             </div>
 
             {/* Action Buttons */}
@@ -445,9 +430,7 @@ export default function InvoicesPage() {
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   DATE
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  STATUS
-                </th>
+                
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   ACTIONS
                 </th>
@@ -494,15 +477,7 @@ export default function InvoicesPage() {
                         {invoice.dueDate}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                          invoice.status
-                        )}`}
-                      >
-                        {invoice.status}
-                      </span>
-                    </td>
+                    
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <button

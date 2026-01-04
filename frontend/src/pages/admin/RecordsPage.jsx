@@ -9,6 +9,7 @@ import {
   Calendar,
   User,
   Stethoscope,
+  Edit,
   Filter,
 } from "lucide-react";
 import { api } from "@/api/mockApi";
@@ -20,6 +21,9 @@ export default function RecordsPage() {
   const [view, setView] = useState("overview"); // 'overview', 'all', 'detail'
   const [selectedReportId, setSelectedReportId] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editFormData, setEditFormData] = useState({});
+
 
   // Filters for all records view
   const [searchTerm, setSearchTerm] = useState("");
@@ -154,6 +158,68 @@ export default function RecordsPage() {
     setView("all");
     setSelectedReportId(null);
     setSelectedRecord(null);
+  };
+
+  const handleEditReport = () => {
+    setIsEditMode(true);
+    setEditFormData({
+      symptoms: Array.isArray(selectedRecord.symptoms) 
+        ? selectedRecord.symptoms.join(', ') 
+        : selectedRecord.symptoms,
+      treatmentDetails: selectedRecord.treatmentDetails.join(', '),
+      services: (selectedRecord.services && selectedRecord.services.length > 0)
+        ? selectedRecord.services.join(', ')
+        : selectedRecord.serviceType,
+      medicalHistory: (selectedRecord.medicalHistory || []).map(med => {
+        if (typeof med === 'string') return { name: med, quantity: '' };
+        return {
+          name: med.name || med.medicine_name || med.med_name || '',
+          quantity: med.quantity ?? med.qty ?? ''
+        };
+      })
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+    setEditFormData({});
+  };
+
+  const handleSaveEdit = () => {
+    // Update the selected record
+    setSelectedRecord({
+      ...selectedRecord,
+      symptoms: editFormData.symptoms.includes(',') 
+        ? editFormData.symptoms.split(',').map(s => s.trim())
+        : [editFormData.symptoms],
+      treatmentDetails: editFormData.treatmentDetails.split(',').map(d => d.trim()),
+      services: editFormData.services.includes(',')
+        ? editFormData.services.split(',').map(s => s.trim())
+        : [editFormData.services],
+      serviceType: editFormData.services.split(',')[0].trim(),
+      medicalHistory: editFormData.medicalHistory
+    });
+    
+    setIsEditMode(false);
+    toast.success('Cập nhật thông tin thành công!');
+  };
+
+  const handleMedicalHistoryChange = (index, field, value) => {
+    const updated = [...editFormData.medicalHistory];
+    updated[index][field] = value;
+    setEditFormData({ ...editFormData, medicalHistory: updated });
+  };
+
+  const handleAddMedicalHistory = () => {
+    setEditFormData({
+      ...editFormData,
+      medicalHistory: [...editFormData.medicalHistory, { name: '', quantity: '' }]
+    });
+  };
+
+  const handleRemoveMedicalHistory = (index) => {
+    const updated = editFormData.medicalHistory.filter((_, i) => i !== index);
+    setEditFormData({ ...editFormData, medicalHistory: updated });
   };
 
   if (loading) {
@@ -313,6 +379,169 @@ export default function RecordsPage() {
 
         {/* Medical Details */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-50 rounded-lg">
+                <Stethoscope className="size-5 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Medical Details</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              {isEditMode ? (
+                <>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors"
+                  >
+                    Lưu
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleEditReport}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+                >
+                  <Edit className="size-4" />
+                  <span>Edit</span>
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <div className="space-y-6">
+            {/* Symptoms */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Triệu chứng</h4>
+              {isEditMode ? (
+                <input
+                  type="text"
+                  value={editFormData.symptoms}
+                  onChange={(e) => setEditFormData({ ...editFormData, symptoms: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 text-sm"
+                />
+              ) : (
+                <div className="flex gap-2 flex-wrap">
+                  {(Array.isArray(selectedRecord.symptoms) 
+                    ? selectedRecord.symptoms 
+                    : [selectedRecord.symptoms]
+                  ).map((symptom, i) => (
+                    <span key={i} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm">
+                      {symptom}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+
+            {/* Diagnosis */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Chẩn đoán</h4>
+              {isEditMode ? (
+                <input
+                  type="text"
+                  value={editFormData.treatmentDetails}
+                  onChange={(e) => setEditFormData({ ...editFormData, treatmentDetails: e.target.value })}
+                  placeholder="Nhập các chẩn đoán, phân tách bằng dấu phẩy"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 text-sm"
+                />
+              ) : (
+                <div className="flex gap-2 flex-wrap">
+                  {selectedRecord.treatmentDetails.map((detail, index) => (
+                    <span key={index} className="px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg text-sm">
+                      {detail}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Services */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Dịch vụ</h4>
+              {isEditMode ? (
+                <input
+                  type="text"
+                  value={editFormData.services}
+                  onChange={(e) => setEditFormData({ ...editFormData, services: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 text-sm"
+                />
+              ) : (
+                <div className="flex gap-2 flex-wrap">
+                  {(selectedRecord.services && selectedRecord.services.length > 0)
+                    ? selectedRecord.services.map((s, i) => (
+                        <span key={i} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm">{s}</span>
+                      ))
+                    : <span className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm">{selectedRecord.serviceType}</span>
+                  }
+                </div>
+              )}
+            </div>
+
+            {/* Chi tiết điều trị */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Chi tiết điều trị</h4>
+              {isEditMode ? (
+                <div className="space-y-2">
+                  {editFormData.medicalHistory.map((med, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={med.name}
+                        onChange={(e) => handleMedicalHistoryChange(index, 'name', e.target.value)}
+                        placeholder="Tên thuốc"
+                        className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 text-sm"
+                      />
+                      <input
+                        type="text"
+                        value={med.quantity}
+                        onChange={(e) => handleMedicalHistoryChange(index, 'quantity', e.target.value)}
+                        placeholder="Số lượng"
+                        className="w-32 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 text-sm"
+                      />
+                      <button
+                        onClick={() => handleRemoveMedicalHistory(index)}
+                        className="px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={handleAddMedicalHistory}
+                    className="px-4 py-2 text-sm bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
+                  >
+                    + Thêm thuốc
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2 flex-wrap">
+                  {(selectedRecord.medicalHistory || []).map((med, index) => {
+                    const name = typeof med === 'string' ? med : (med.name || med.medicine_name || med.med_name || '');
+                    const qty = typeof med === 'string' ? null : (med.quantity ?? med.qty ?? null);
+                    return (
+                      <div key={index} className="bg-blue-50 text-blue-700 rounded-lg text-sm p-3">
+                        <p className="font-medium">{name}</p>
+                        {qty !== null && (
+                          <p className="text-xs text-gray-500 mt-1">Số lượng: {qty}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Medical Details */}
+        {/* <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-red-50 rounded-lg">
               <Stethoscope className="size-5 text-red-600" />
@@ -320,11 +549,11 @@ export default function RecordsPage() {
             <h3 className="text-lg font-semibold text-gray-900">
               Medical Details
             </h3>
-          </div>
+          </div> */}
 
-          <div className="space-y-6">
+          {/* <div className="space-y-6"> */}
             {/* Symptoms */}
-            <div>
+            {/* <div>
               <h4 className="text-sm font-medium text-gray-700 mb-2">
                 Triệu chứng
               </h4>
@@ -333,10 +562,10 @@ export default function RecordsPage() {
                   {selectedRecord.symptoms.join(', ')}
                 </span>
               </div>
-            </div>
+            </div> */}
 
             {/* Diagnosis */}
-            <div>
+            {/* <div>
               <h4 className="text-sm font-medium text-gray-700 mb-2">
                 Chẩn đoán
               </h4>
@@ -350,9 +579,9 @@ export default function RecordsPage() {
                   </span>
                 ))}
               </div>
-            </div>
+            </div> */}
 
-            <div>
+            {/* <div>
               <h4 className="text-sm font-medium text-gray-700 mb-2">
                 Dịch vụ
               </h4>
@@ -364,27 +593,12 @@ export default function RecordsPage() {
                   : <span className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm">{selectedRecord.serviceType}</span>
                 }
               </div>
-            </div>
-
-            {/* Medical History */}
-            {/* <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
-                Chi tiết điều trị
-              </h4>
-              <div className="flex gap-2">
-                {selectedRecord.medicalHistory.map((item, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
             </div> */}
 
+            
+
             {/*Chi tiết điều trị */}
-            <div>
+            {/* <div>
               <h4 className="text-sm font-medium text-gray-700 mb-2">
                 Chi tiết điều trị
               </h4>
@@ -406,38 +620,9 @@ export default function RecordsPage() {
             </div>
 
             
-            {/* Prescription */}
-            {/* <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
-                Chỉ định
-              </h4>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-gray-50 p-4 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Số lượng</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {selectedRecord.dosage}
-                  </p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Liều lượng</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {selectedRecord.frequency}
-                  </p>
-                </div>
-              </div>
-            </div> */}
-
-            {/* Medical Condition
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
-
-              </h4>
-              <p className="text-sm text-gray-600">
-                {selectedRecord.medicalCondition}
-              </p>
-            </div> */}
-          </div>
-        </div>
+            
+          </div> */}
+        {/* </div> */}
 
         {/* Medical Images */}
         {selectedRecord.images && selectedRecord.images.length > 0 && (

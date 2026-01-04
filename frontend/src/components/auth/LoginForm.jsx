@@ -138,12 +138,7 @@ export default function LoginForm() {
         Đăng ký
       </button>
 
-      {/* Hint */}
-      <p className="relative z-10 mt-4 text-xs text-gray-500 text-center">
-        Admin: <b>admin@gmail.com</b> / <b>123456</b>
-        <br />
-        User: <b>user@gmail.com</b> / <b>123456</b>
-      </p>
+      
     </form>
   );
 }

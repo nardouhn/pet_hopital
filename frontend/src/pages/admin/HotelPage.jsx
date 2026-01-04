@@ -16,9 +16,10 @@ export default function HotelPage() {
   
   // Form state
   const [formData, setFormData] = useState({
-    ownerEmail: '',
+    ownerName: '',
     petName: '',
     visitDate: '',
+    checkoutDate:'',
     roomType: '',
     description: ''
   });
@@ -57,7 +58,7 @@ export default function HotelPage() {
   ];
 
   // Calculate statistics from backend data
-  const currentBookings = bookings.filter(b => !b.checkOut);
+  const currentBookings = bookings.filter(b => !b.checkedOut);
   const totalRooms = rooms.length * 10; // Assuming each room can accommodate 10 pets
   const occupiedRooms = new Set(currentBookings.map(b => b.pethouse)).size;
   const currentPetsInClinic = currentBookings.length;
@@ -80,11 +81,11 @@ export default function HotelPage() {
     }
   };
 
-  // Handle checkout (UI only for now)
+  
 
   // Handle adding new booking
   const handleAddBooking = () => {
-    if (!formData.ownerEmail || !formData.petName || !formData.visitDate || !formData.roomType) {
+    if (!formData.ownerName || !formData.petName || !formData.visitDate || !formData.checkoutDate|| !formData.roomType) {
       toast.error('Vui lòng điền đầy đủ thông tin bắt buộc!');
       return;
     }
@@ -98,7 +99,7 @@ export default function HotelPage() {
     });
 
     // Calculate checkout date (7 days later for example)
-    const checkOutDate = new Date(visitDate);
+    const checkOutDate = new Date(formData.checkoutDate);
     checkOutDate.setDate(checkOutDate.getDate() + 7);
     const checkOutFormatted = checkOutDate.toLocaleDateString('en-US', {
       month: 'short',
@@ -117,10 +118,11 @@ export default function HotelPage() {
     const newBooking = {
       id: Date.now(), // Unique ID
       petName: formData.petName,
-      ownerName: formData.ownerEmail,
+      ownerName: formData.ownerName,
       bookingType: 'current',
       checkIn: checkInFormatted,
-      checkOut: null,
+      checkOut: checkOutFormatted,
+      checkedOut: false, 
       roomNumber: roomNumber,
       price: price,
       roomType: formData.roomType,
@@ -134,9 +136,10 @@ export default function HotelPage() {
     
     // Reset form
     setFormData({
-      ownerEmail: '',
+      ownerName: '',
       petName: '',
       visitDate: '',
+      checkoutDate: '',
       roomType: '',
       description: ''
     });
@@ -307,8 +310,8 @@ export default function HotelPage() {
               <Users className="size-6 text-purple-600" />
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-2">Thú cưng / Số phòng</p>
-          <p className="text-3xl font-bold text-gray-900">{currentPetsInClinic}/{totalRooms}</p>
+          <p className="text-sm text-gray-600 mb-2">Thú cưng</p>
+          <p className="text-3xl font-bold text-gray-900">{currentPetsInClinic}</p>
         </div>
 
         {/* Total Revenue */}
@@ -438,18 +441,18 @@ export default function HotelPage() {
             {/* Form */}
             <div className="bg-white rounded-2xl m-6 p-6 border-4 border-[#ccfbf1]">
               <div className="space-y-5">
-                {/* Email chủ */}
+                {/* Tên chủ */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-2">
                     <span>👤</span>
-                    <span>Email chủ</span>
+                    <span>Tên chủ</span>
                   </label>
                   <input
-                    type="email"
-                    placeholder="user@gmail.com"
+                    type="text"
+                    placeholder="Hiệu"
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent text-sm"
-                    value={formData.ownerEmail}
-                    onChange={(e) => setFormData({ ...formData, ownerEmail: e.target.value })}
+                    value={formData.ownerName}
+                    onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
                   />
                 </div>
 
@@ -470,11 +473,11 @@ export default function HotelPage() {
 
                 {/* Two column layout for date and room type */}
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Ngày thăm khám */}
+                  {/* Checkin */}
                   <div>
                     <label className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-2">
                       <span>📅</span>
-                      <span>Ngày thăm khám*</span>
+                      <span>Checkin*</span>
                     </label>
                     <input
                       type="datetime-local"
@@ -484,23 +487,37 @@ export default function HotelPage() {
                     />
                   </div>
 
-                  {/* Loại phòng */}
+                  {/* Checkout */}
                   <div>
                     <label className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-2">
-                      <Home className="size-4" />
-                      <span>Loại phòng</span>
+                      <span>📅</span>
+                      <span>Checkout*</span>
                     </label>
-                    <select
-                      className="w-full px-4 py-3 bg-[#ccfbf1] border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent text-sm text-black"
-                      value={formData.roomType}
-                      onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
-                    >
-                      <option value="">Loại phòng</option>
-                      {rooms.map((room) => (
-                        <option key={room.hotel_id || room.name} value={room.name}>{room.name}</option>
-                      ))}
-                    </select>
+                    <input
+                      type="datetime-local"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent text-sm"
+                      value={formData.checkoutDate}
+                      onChange={(e) => setFormData({ ...formData, checkoutDate: e.target.value })}
+                    />
                   </div>
+                </div>
+
+                {/* Loại phòng */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-2">
+                    <Home className="size-4" />
+                    <span>Loại phòng</span>
+                  </label>
+                  <select
+                    className="w-full px-4 py-3 bg-[#ccfbf1] border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent text-sm text-black"
+                    value={formData.roomType}
+                    onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
+                  >
+                    <option value="">Loại phòng</option>
+                    {roomPrices.map((room, index) => (
+                      <option key={index} value={room.name}>{room.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Mô tả */}
