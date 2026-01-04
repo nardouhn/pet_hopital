@@ -5,13 +5,12 @@ GitHub
 
 📦 Hướng dẫn chạy dự án
 1. Clone mã nguồn
+
 git clone https://github.com/nardouhn/Petorium.git
+
 cd Petorium
-git worktree add ../backend backend
 
 
-(Phần này là chỉ dẫn chạy backend riêng bằng worktree) 
-GitHub
 
 2. Thiết lập môi trường
 
@@ -22,8 +21,9 @@ Mở Docker Desktop và mở VS Code, sau đó mở Terminal và chạy các l�
 docker exec backend_flask_app python /app/scripts/seed_defaults.py
 
 # Nếu dùng Git Bash cần chuyển dòng cho script
-dos2unix /backend2/backend/docker-entrypoint.sh
-chmod +x /backend2/backend/docker-entrypoint.sh
+dos2unix backend/docker-entrypoint.sh
+
+chmod +x backend/docker-entrypoint.sh
 
 # Khởi động database và nạp dữ liệu
 docker compose up -d db && sleep 2 && \
