@@ -125,8 +125,8 @@ services:
     working_dir: /app
     environment:
       # Leave VITE_API_BASE empty to use relative paths (so Vite can proxy). Set VITE_DEV_PROXY_TARGET to backend service for in-container proxying.
-      - VITE_API_BASE=
-      - VITE_DEV_PROXY_TARGET=http://backend:8080
+      - VITE_API_BASE=""
+      #- VITE_DEV_PROXY_TARGET=http://backend:8080
     volumes:
       - ./frontend:/app
       - /app/node_modules
