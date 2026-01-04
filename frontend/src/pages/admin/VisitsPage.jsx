@@ -13,6 +13,7 @@ import {
 import { createPortal } from "react-dom";
 import { getAdminAppointments, getAppointmentsStats, updateSlotCheckout, updateSlotStatus, getUserPets, createPatientReport } from "@/api/mockApi";
 
+
 export default function VisitsPage() {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +96,7 @@ export default function VisitsPage() {
     const iso = toIsoDate(v.checkInIso || v.date || v.booking_date || v.bookingDate);
     return iso === todayIso;
   });
-  const waitingCount = todayVisits.filter((v) => v.status === "Đang chờ").length;
+
   const inProgressCount = todayVisits.filter(
     (v) => v.status === "Đang khám"
   ).length;
@@ -104,6 +105,7 @@ export default function VisitsPage() {
   ).length;
   const totalTodayCount = todayVisits.length;
 
+  const waitingCount = totalTodayCount - inProgressCount - completedCount;
   // Apply filters
   const filteredVisits = visits.filter((visit) => {
     const visitIso = toIsoDate(visit.date || visit.booking_date || visit.bookingDate);
@@ -692,3 +694,4 @@ function AddVisitModal({ onClose, slotId, userId, onCreated }) {
     document.body
   );
 }
+

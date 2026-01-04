@@ -597,8 +597,6 @@ function _normalizeStatus(raw) {
   if (!raw) return '-';
   const s = raw.toString().toLowerCase();
   if (s.includes('chờ')) return 'Đang chờ';
-  // Map common appointment strings (confirmed/placed) to 'Đang chờ' for admin UI
-  if (s.includes('thành công') || s.includes('đặt lịch') || s.includes('Đang chờ')) return 'Đang chờ xác nhận';
   if (s.includes('đang khám') || s.includes('in progress')) return 'Đang khám';
   if (s.includes('đã xong') || s.includes('hoàn thành') || s.includes('thành công')) return 'Đặt lịch hẹn thành công';
   if (s.includes('hủy')) return 'Đã hủy lịch hẹn';

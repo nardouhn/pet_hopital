@@ -23,7 +23,7 @@ export default function HotelPage() {
     description: ''
   });
 
-  // Room prices and invoices are fetched from backend APIs now (no mock data).
+  // Room prices and invoices are fetched from backend APIs now (no mock data)
 
   useEffect(() => {
     let mounted = true;
@@ -340,12 +340,23 @@ export default function HotelPage() {
             ) : (
               currentBookings.map((booking, idx) => (
                 <div
-                  key={`${booking.petName || 'b'}-${idx}`}
+                  key={`${booking.petName ||  'b'}-${idx}`}
                   className="border border-[#e5e7eb] rounded-lg p-4 relative hover:shadow-md transition-shadow"
                 >
                   <h3 className="font-bold text-[#1f2937] text-sm mb-2">
-                    {booking.petName} - {booking.user_name || booking.ownerName || '-'}
+                    {booking.petName || booking.pet_name|| "-"} -{" "}
+                    {booking.ownerName ||
+                    booking.user_name ||
+                    booking.customer_name ||
+                    booking.userName ||
+                    booking.username ||
+                    booking.owner_name ||
+                    booking.customer?.name ||
+                    booking.user_name ||
+                    "-"}
                   </h3>
+
+
 
                   <p className="text-xs text-[#4b5563] mb-3">
                     {booking.pethouse || '-'}
@@ -435,7 +446,7 @@ export default function HotelPage() {
                   </label>
                   <input
                     type="email"
-                    placeholder="Nguyễn Quốc"
+                    placeholder="user@gmail.com"
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent text-sm"
                     value={formData.ownerEmail}
                     onChange={(e) => setFormData({ ...formData, ownerEmail: e.target.value })}
